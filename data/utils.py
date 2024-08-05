@@ -77,6 +77,42 @@ def smi2hgraph(smiles_string):
 
     return (atom_fvs, n_idx, e_idx, bond_fvs)
 
+def mol2hgraph(mol):
+    """
+    """
+    
+    # atoms
+    atom_fvs = []
+    for atom in mol.GetAtoms():
+        atom_fvs.append(atom_to_feature_vector(atom))
+
+    # bonds
+    num_bond_features = 1  # bond type (single, double, triple, conjugated)
+    if len(mol.GetBonds()) > 0: # mol has bonds
+        n_idx, e_idx, bond_fvs = [], [], []
+        for i, bond in enumerate(mol.GetBonds()):
+            n_idx.append(bond.GetBeginAtomIdx())
+            n_idx.append(bond.GetEndAtomIdx())
+            e_idx.append(i)
+            e_idx.append(i)
+            bond_type = bond_to_feature_vector(bond)[0]
+            bond_fvs.append([bond_type])
+
+    else:   # mol has no bonds
+        n_idx, e_idx= [], []
+        bond_fvs = np.empty((0, num_bond_features), dtype=np.int64)
+        return (atom_fvs, n_idx, e_idx, bond_fvs)
+    
+    # hyperedges for conjugated bonds
+    he_n, he_e = he_conj(mol)
+    num_bond = mol.GetNumBonds()
+    if len(he_n) != 0:
+        he_e = [_id + num_bond for _id in he_e]
+        n_idx += he_n
+        e_idx += he_e
+        bond_fvs += len(set(he_e)) * [num_bond_features * [5]]
+
+    return (atom_fvs, n_idx, e_idx, bond_fvs)
 
 class HData(Data):
     """ PyG data class for molecular hypergraphs

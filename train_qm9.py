@@ -4,9 +4,10 @@ import torch
 import torch.nn as nn
 import torch_geometric.transforms as T
 from torch_geometric.loader import DataLoader
+from torch.utils.data import random_split
 
 from models import MHNN, GNN_2D, MHNNS
-from data import OPVHGraph, OPVGraph, OneTarget
+from data import QM9HGraph, QM9HGraph3D, OneTarget
 
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import CSVLogger, WandbLogger
@@ -15,17 +16,12 @@ class LitModel(pl.LightningModule):
     def __init__(self, hparams):
         super(LitModel, self).__init__()
         self.save_hyperparameters(hparams)
-
-        # Initialize the model based on the method
         if self.hparams.method == 'mhnn':
-            self.model = MHNN(1, self.hparams)
-        elif self.hparams.method == 'mhnns':
             self.model = MHNNS(1, self.hparams)
         elif self.hparams.method in ['gin', 'gcn', 'gat', 'gatv2']:
             self.model = GNN_2D(1, gnn_type=self.hparams.method, drop_ratio=self.hparams.dropout)
         else:
             raise ValueError(f'Undefined model name: {self.hparams.method}')
-        
         self.mse_loss_fn = nn.MSELoss()
         self.mae_loss_fn = nn.L1Loss()
 
@@ -88,7 +84,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='OPV Training with MHNN')
 
     # Dataset arguments
-    parser.add_argument('--data_dir', type=str, default="data/opv3d")
+    parser.add_argument('--data_dir', type=str, default="data/qm9")
     parser.add_argument('--target', type=int, default=0, help='target of dataset')
 
     # Training hyperparameters
@@ -123,39 +119,36 @@ if __name__ == '__main__':
     device = f'cuda:{args.device}' if torch.cuda.is_available() else 'cpu'
     device = torch.device(device)
 
-    # Load dataset and normalize targets to mean = 0 and std = 1
-    if args.target in [0, 1, 2, 3]:
-        args.polymer = False
-    elif args.target in [4, 5, 6, 7]:
-        args.polymer = True
-    else:
-        raise Exception('Invalid target value!')
-
     transform = T.Compose([OneTarget(target=args.target)])
 
-    if args.method == 'mhnn' or 'mhnns':
-        train_dataset = OPVHGraph(root=args.data_dir, polymer=args.polymer, partition='train', transform=transform)
-        valid_dataset = OPVHGraph(root=args.data_dir, polymer=args.polymer, partition='valid', transform=transform)
-        test_dataset = OPVHGraph(root=args.data_dir, polymer=args.polymer, partition='test', transform=transform)
-    else:
-        train_dataset = OPVGraph(root=args.data_dir, polymer=args.polymer, partition='train', transform=transform)
-        valid_dataset = OPVGraph(root=args.data_dir, polymer=args.polymer, partition='valid', transform=transform)
-        test_dataset = OPVGraph(root=args.data_dir, polymer=args.polymer, partition='test', transform=transform)
+    dataset = QM9HGraph(root=args.data_dir, transform=transform)
+
+    train_ratio = 0.8
+    valid_ratio = 0.1
+    test_ratio = 0.1
+
+    # Calculate the number of samples in each set
+    train_size = int(train_ratio * len(dataset))
+    valid_size = int(valid_ratio * len(dataset))
+    test_size = len(dataset) - train_size - valid_size
+
+    # Split the dataset
+    train_dataset, valid_dataset, test_dataset = random_split(dataset, [train_size, valid_size, test_size])
 
     # Normalize targets to mean = 0 and std = 1.
-    mean = train_dataset._data.y.mean(dim=0, keepdim=True)
-    std = train_dataset._data.y.std(dim=0, keepdim=True)
-    train_dataset._data.y = (train_dataset._data.y - mean) / std
-    valid_dataset._data.y = (valid_dataset._data.y - mean) / std
-    test_dataset._data.y = (test_dataset._data.y - mean) / std
-    mean, std = mean[:, args.target].item(), std[:, args.target].item()
+    mean = train_dataset.dataset.data.y[train_dataset.indices].mean(dim=0, keepdim=True)
+    std = train_dataset.dataset.data.y[train_dataset.indices].std(dim=0, keepdim=True)
+
+    train_dataset.dataset.data.y[train_dataset.indices] = (train_dataset.dataset.data.y[train_dataset.indices] - mean) / std
+    valid_dataset.dataset.data.y[valid_dataset.indices] = (valid_dataset.dataset.data.y[valid_dataset.indices] - mean) / std
+    test_dataset.dataset.data.y[test_dataset.indices] = (test_dataset.dataset.data.y[test_dataset.indices] - mean) / std
 
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=8)
     valid_loader = DataLoader(valid_dataset, batch_size=args.batch_size, shuffle=False, num_workers=8)
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=8)
 
-    # Set up loggers
-    csv_logger = CSVLogger(save_dir='logs/', name="opv_" + str(args.target) + "_" + args.method)
+    # Set up CSV logger
+    csv_logger = CSVLogger(save_dir='logs/', name=args.data_dir + "_" + str(args.target))
     wandb_logger = WandbLogger(
     project="Geometric Molecular Hypergraph",
     name=f"opv_{args.target}_{args.method}",
@@ -165,7 +158,6 @@ if __name__ == '__main__':
         wandb_logger, 
         csv_logger
         ]
-    
     torch.set_float32_matmul_precision("medium")
 
     summary_callback = pl.callbacks.ModelSummary(max_depth=8)
@@ -189,7 +181,7 @@ if __name__ == '__main__':
 
         trainer = pl.Trainer(
             max_epochs=args.epochs,
-            logger=loggers,
+            logger=csv_logger,
             callbacks=callbacks,
             devices=1 if torch.cuda.is_available() else 0,
         )

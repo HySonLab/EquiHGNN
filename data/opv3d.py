@@ -53,13 +53,13 @@ class OPVBase(InMemoryDataset):
     raw_url1 = ('https://data.nrel.gov/system/files/236/1712697052-mol_valid.csv.gz')
     raw_url2 = ('https://data.nrel.gov/system/files/236/1712697052-mol_test.csv.gz')
 
-    def __init__(self, root, polymer=False, partition='train', 
+    def __init__(self, root, polymer=False, partition='train', force_reload=False, 
                  transform=None, pre_transform=None, pre_filter=None):
         assert polymer in [True, False]
         self.polymer = polymer
         assert partition in ['train', 'valid', 'test']
         self.partition = partition
-        super().__init__(root, transform, pre_transform, pre_filter)
+        super().__init__(root, transform, pre_transform, pre_filter, force_reload=force_reload)
 
         self.data, self.slices = torch.load(self.processed_paths[0])
 
@@ -188,15 +188,15 @@ class OPVHGraph3D(OPVBase):
             
         elif self.partition == 'train' and self.polymer is True:
             data_list = self.compute_3dhgraph(self.raw_paths[2], self.raw_paths[3])
-            torch.save(self.collate(data_list), self.processed_paths[1])
+            torch.save(self.collate(data_list), self.processed_paths[0])
             
         elif self.partition == 'valid':
             data_list = self.compute_3dhgraph(self.raw_paths[4], self.raw_paths[5])
-            torch.save(self.collate(data_list), self.processed_paths[2])
+            torch.save(self.collate(data_list), self.processed_paths[0])
             
         elif self.partition == 'test':
             data_list = self.compute_3dhgraph(self.raw_paths[6], self.raw_paths[7])
-            torch.save(self.collate(data_list), self.processed_paths[3])
+            torch.save(self.collate(data_list), self.processed_paths[0])
             
 
 class OPVGraph3D(OPVBase):
@@ -250,15 +250,15 @@ class OPVGraph3D(OPVBase):
             
         elif self.partition == 'train' and self.polymer is True:
             data_list = self.compute_3dgraph(self.raw_paths[2], self.raw_paths[3])
-            torch.save(self.collate(data_list), self.processed_paths[1])
+            torch.save(self.collate(data_list), self.processed_paths[0])
             
         elif self.partition == 'valid':
             data_list = self.compute_3dgraph(self.raw_paths[4], self.raw_paths[5])
-            torch.save(self.collate(data_list), self.processed_paths[2])
+            torch.save(self.collate(data_list), self.processed_paths[0])
             
         elif self.partition == 'test':
             data_list = self.compute_3dgraph(self.raw_paths[6], self.raw_paths[7])
-            torch.save(self.collate(data_list), self.processed_paths[3])
+            torch.save(self.collate(data_list), self.processed_paths[0])
 
 class OPVHGraph(OPVBase):
 
@@ -321,15 +321,15 @@ class OPVHGraph(OPVBase):
 
         elif self.partition == 'train' and self.polymer is True:
             data_list = self.compute_hgraph(self.raw_paths[1])
-            torch.save(self.collate(data_list), self.processed_paths[1])
+            torch.save(self.collate(data_list), self.processed_paths[0])
 
         elif self.partition == 'valid':
             data_list = self.compute_hgraph(self.raw_paths[2])
-            torch.save(self.collate(data_list), self.processed_paths[2])
+            torch.save(self.collate(data_list), self.processed_paths[0])
 
         elif self.partition == 'test':
             data_list = self.compute_hgraph(self.raw_paths[3])
-            torch.save(self.collate(data_list), self.processed_paths[3])
+            torch.save(self.collate(data_list), self.processed_paths[0])
 
 class OPVGraph(OPVBase):
 
@@ -383,12 +383,12 @@ class OPVGraph(OPVBase):
 
         elif self.partition == 'train' and self.polymer is True:
             data_list = self.compute_graph(self.raw_paths[1])
-            torch.save(self.collate(data_list), self.processed_paths[1])
+            torch.save(self.collate(data_list), self.processed_paths[0])
 
         elif self.partition == 'valid':
             data_list = self.compute_graph(self.raw_paths[2])
-            torch.save(self.collate(data_list), self.processed_paths[2])
+            torch.save(self.collate(data_list), self.processed_paths[0])
 
         elif self.partition == 'test':
             data_list = self.compute_graph(self.raw_paths[3])
-            torch.save(self.collate(data_list), self.processed_paths[3])
+            torch.save(self.collate(data_list), self.processed_paths[0])

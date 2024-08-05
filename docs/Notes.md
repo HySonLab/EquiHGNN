@@ -15,8 +15,8 @@ Dataset: Molecules with **Atoms 3D Coordinates** (sdf, babel DFT-optimized) and 
 ### MHNN
 
 - OPV 3D Info used in the baseline of SchNet. ⚠️ Other datasets than OPV may not have 3D Info readily available.
-- ⚠️ Model in training code of OPV being `MHNNS` not the architecture in paper i.e not using bond information
-- ⚠️ Loss being `nn.MSELoss()` not the metric in paper
+<!-- - ⚠️ Model in training code of OPV being `MHNNS` not the architecture in paper i.e not using bond information
+- ⚠️ Loss being `nn.MSELoss()` not the metric in paper -->
 
 ### E(n) Topo NN
 **Similar approach to E(n) Equivariant GNN**

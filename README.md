@@ -26,7 +26,9 @@ To train and evaluate the models, use the following commands:
 1. **Training**:
 
 ```bash
-bash scripts/run_opv.sh
+# molecular: 0-gap, 1-homo, 2-lumo, 3-spectral_overlap
+# polymer: 4-homo, 5-lumo, 6-gap, 7-optical_lumo
+bash scripts/run_opv.sh $TASK
 ```
 
 ## Results

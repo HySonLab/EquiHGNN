@@ -12,10 +12,10 @@ import pytorch_lightning as pl
 from pytorch_lightning.loggers import CSVLogger, WandbLogger
 
 class LitModel(pl.LightningModule):
-    def __init__(self, hparams):
+    def __init__(self, hparams, std=None):
         super(LitModel, self).__init__()
         self.save_hyperparameters(hparams)
-
+        self.std = std
         # Initialize the model based on the method
         if self.hparams.method == 'mhnn':
             self.model = MHNN(1, self.hparams)
@@ -35,39 +35,31 @@ class LitModel(pl.LightningModule):
     def training_step(self, data, batch_idx):
         out = self(data)
         mse_loss = self.mse_loss_fn(out, data.y)
-        # mae_loss = self.mae_loss_fn(out, data.y)
-        
-        # Log both losses
+
         self.log('train_loss', mse_loss, on_step=False, on_epoch=True, prog_bar=True, batch_size=self.hparams.batch_size)
-        # self.log('train_mae', mae_loss, on_step=False, on_epoch=True, prog_bar=True, batch_size=self.hparams.batch_size)
         
         return mse_loss
 
     def validation_step(self, data, batch_idx):
         out = self(data)
-        mse_loss = self.mse_loss_fn(out, data.y)
         mae_loss = self.mae_loss_fn(out, data.y)
-        
-        # Log both losses
-        self.log('val_loss', mse_loss, on_step=False, on_epoch=True, prog_bar=True, batch_size=self.hparams.batch_size)
+        if self.std:
+            mae_loss = mae_loss * self.std
         self.log('val_mae', mae_loss, on_step=False, on_epoch=True, prog_bar=True, batch_size=self.hparams.batch_size)
-        
-        # Log learning rate
+
         lr = self.optimizers().param_groups[0]['lr']
         self.log('lr', float(f"{lr:.5e}"), on_step=False, on_epoch=True, prog_bar=True, batch_size=self.hparams.batch_size)
         
-        return mse_loss
+        return mae_loss
 
     def test_step(self, data, batch_idx):
         out = self(data)
-        mse_loss = self.mse_loss_fn(out, data.y)
         mae_loss = self.mae_loss_fn(out, data.y)
-        
-        # Log both losses
-        self.log('test_loss', mse_loss, on_step=False, on_epoch=True, prog_bar=True, batch_size=self.hparams.batch_size)
+        if self.std:
+            mae_loss = mae_loss * self.std
         self.log('test_mae', mae_loss, on_step=False, on_epoch=True, prog_bar=True, batch_size=self.hparams.batch_size)
         
-        return mse_loss
+        return mae_loss
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.model.parameters(), lr=self.hparams.lr, weight_decay=self.hparams.wd)
@@ -76,7 +68,7 @@ class LitModel(pl.LightningModule):
             'optimizer': optimizer,
             'lr_scheduler': {
                 'scheduler': scheduler,
-                'monitor': 'val_loss'
+                'monitor': 'val_mae'
             }
         }
 
@@ -103,7 +95,7 @@ if __name__ == '__main__':
     parser.add_argument('--clip_gnorm', default=None, type=float)
 
     # Model hyperparameters
-    parser.add_argument('--method', default='mhnn', help='model type')
+    parser.add_argument('--method', default='mhnns', help='model type')
     parser.add_argument('--All_num_layers', default=3, type=int, help='number of basic blocks')
     parser.add_argument('--MLP1_num_layers', default=2, type=int, help='layer number of mlps')
     parser.add_argument('--MLP2_num_layers', default=2, type=int, help='layer number of mlp2')
@@ -156,17 +148,17 @@ if __name__ == '__main__':
 
     # Set up loggers
     csv_logger = CSVLogger(save_dir='logs/', name="opv_" + str(args.target) + "_" + args.method)
-    wandb_logger = WandbLogger(
-    project="Geometric Molecular Hypergraph",
-    name=f"opv_{args.target}_{args.method}",
-    save_dir="logs/"
-    )
+    # wandb_logger = WandbLogger(
+    # project="Geometric Molecular Hypergraph",
+    # name=f"opv_{args.target}_{args.method}",
+    # save_dir="logs/"
+    # )
     loggers = [
-        wandb_logger, 
+        # wandb_logger, 
         csv_logger
         ]
     
-    torch.set_float32_matmul_precision("medium")
+    # torch.set_float32_matmul_precision("medium")
 
     summary_callback = pl.callbacks.ModelSummary(max_depth=8)
     early_stop_callback = pl.callbacks.EarlyStopping(
@@ -185,7 +177,7 @@ if __name__ == '__main__':
         print(f'Seed: {seed}\n')
 
         # Initialize Lightning model
-        model = LitModel(args)
+        model = LitModel(args, std=std)
 
         trainer = pl.Trainer(
             max_epochs=args.epochs,

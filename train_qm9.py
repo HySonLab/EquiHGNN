@@ -13,15 +13,20 @@ import pytorch_lightning as pl
 from pytorch_lightning.loggers import CSVLogger, WandbLogger
 
 class LitModel(pl.LightningModule):
-    def __init__(self, hparams):
+    def __init__(self, hparams, std=None):
         super(LitModel, self).__init__()
         self.save_hyperparameters(hparams)
+        self.std = std
+        # Initialize the model based on the method
         if self.hparams.method == 'mhnn':
+            self.model = MHNN(1, self.hparams)
+        elif self.hparams.method == 'mhnns':
             self.model = MHNNS(1, self.hparams)
         elif self.hparams.method in ['gin', 'gcn', 'gat', 'gatv2']:
             self.model = GNN_2D(1, gnn_type=self.hparams.method, drop_ratio=self.hparams.dropout)
         else:
             raise ValueError(f'Undefined model name: {self.hparams.method}')
+        
         self.mse_loss_fn = nn.MSELoss()
         self.mae_loss_fn = nn.L1Loss()
 
@@ -32,8 +37,7 @@ class LitModel(pl.LightningModule):
         out = self(data)
         mse_loss = self.mse_loss_fn(out, data.y)
         # mae_loss = self.mae_loss_fn(out, data.y)
-        
-        # Log both losses
+
         self.log('train_loss', mse_loss, on_step=False, on_epoch=True, prog_bar=True, batch_size=self.hparams.batch_size)
         # self.log('train_mae', mae_loss, on_step=False, on_epoch=True, prog_bar=True, batch_size=self.hparams.batch_size)
         
@@ -41,30 +45,25 @@ class LitModel(pl.LightningModule):
 
     def validation_step(self, data, batch_idx):
         out = self(data)
-        mse_loss = self.mse_loss_fn(out, data.y)
         mae_loss = self.mae_loss_fn(out, data.y)
-        
-        # Log both losses
-        self.log('val_loss', mse_loss, on_step=False, on_epoch=True, prog_bar=True, batch_size=self.hparams.batch_size)
+        if self.std:
+            mae_loss = mae_loss * self.std
         self.log('val_mae', mae_loss, on_step=False, on_epoch=True, prog_bar=True, batch_size=self.hparams.batch_size)
-        
-        # Log learning rate
+
         lr = self.optimizers().param_groups[0]['lr']
         self.log('lr', float(f"{lr:.5e}"), on_step=False, on_epoch=True, prog_bar=True, batch_size=self.hparams.batch_size)
         
-        return mse_loss
+        return mae_loss
 
     def test_step(self, data, batch_idx):
         out = self(data)
-        mse_loss = self.mse_loss_fn(out, data.y)
         mae_loss = self.mae_loss_fn(out, data.y)
-        
-        # Log both losses
-        self.log('test_loss', mse_loss, on_step=False, on_epoch=True, prog_bar=True, batch_size=self.hparams.batch_size)
+        if self.std:
+            mae_loss = mae_loss * self.std
         self.log('test_mae', mae_loss, on_step=False, on_epoch=True, prog_bar=True, batch_size=self.hparams.batch_size)
         
-        return mse_loss
-
+        return mae_loss
+    
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.model.parameters(), lr=self.hparams.lr, weight_decay=self.hparams.wd)
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.7, patience=5, min_lr=self.hparams.min_lr)

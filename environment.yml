@@ -18,7 +18,7 @@ dependencies:
 - torchvision==0.14.0
 - torchaudio==0.13.0
 - pytorch-cuda=11.6
-- pytorch-lightning==2.3.3
+- pytorch-lightning
 - pyyaml
 - tqdm
 - wandb

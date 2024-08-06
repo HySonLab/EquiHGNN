@@ -1,4 +1,4 @@
-# 3D Geometric Hypergraph Neural Network
+# Rotationally Equivariant Hypergraph Neural Networks (EquiHGNN)
 
 ## Dataset
 

@@ -1,4 +1,5 @@
 #! /bin/bash
+set -euxo pipefail
 
 # 0-gap, 1-homo, 2-lumo
 TASK=$1

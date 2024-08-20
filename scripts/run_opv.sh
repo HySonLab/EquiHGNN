@@ -1,4 +1,5 @@
 #! /bin/bash
+set -euxo pipefail
 
 # molecular: 0-gap, 1-homo, 2-lumo, 3-spectral_overlap
 # polymer: 4-homo, 5-lumo, 6-gap, 7-optical_lumo

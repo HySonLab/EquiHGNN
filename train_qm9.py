@@ -83,7 +83,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='OPV Training with MHNN')
 
     # Dataset arguments
-    parser.add_argument('--data_dir', type=str, default="data/qm9")
+    parser.add_argument('--data_dir', type=str, default="datasets/qm9")
     parser.add_argument('--target', type=int, default=0, help='target of dataset')
 
     # Training hyperparameters

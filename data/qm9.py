@@ -15,7 +15,7 @@ import torch.hub
 from rdkit import Chem
 from ogb.utils import smiles2graph
 
-from data.utils import mol2hgraph, smi2hgraph, edge_order, HData
+from data.utils import smi2hgraph, edge_order, HData
 
 def download_url(url, output_path):
     if not os.path.exists(output_path):

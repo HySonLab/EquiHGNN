@@ -7,6 +7,7 @@ from torch_geometric.loader import DataLoader
 
 from models import MHNN, GNN_2D, MHNNS
 from data import OPVHGraph, OPVGraph, OneTarget
+from utils import create_model, create_data
 
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import CSVLogger, WandbLogger
@@ -16,15 +17,13 @@ class LitModel(pl.LightningModule):
         super(LitModel, self).__init__()
         self.save_hyperparameters(hparams)
         self.std = std
+
         # Initialize the model based on the method
-        if self.hparams.method == 'mhnn':
-            self.model = MHNN(1, self.hparams)
-        elif self.hparams.method == 'mhnns':
-            self.model = MHNNS(1, self.hparams)
-        elif self.hparams.method in ['gin', 'gcn', 'gat', 'gatv2']:
-            self.model = GNN_2D(1, gnn_type=self.hparams.method, drop_ratio=self.hparams.dropout)
+        model_cls = create_model(model_name=self.hparams.method)
+        if model_cls.__name__ == "GNN_2D":
+            self.model = model_cls(1, gnn_type=self.hparams.method, drop_ratio=self.hparams.dropout)
         else:
-            raise ValueError(f'Undefined model name: {self.hparams.method}')
+            self.model = model_cls(1, self.hparams)
         
         self.mse_loss_fn = nn.MSELoss()
         self.mae_loss_fn = nn.L1Loss()
@@ -96,6 +95,7 @@ if __name__ == '__main__':
 
     # Model hyperparameters
     parser.add_argument('--method', default='mhnns', help='model type')
+    parser.add_argument('--data', default='opv_hg', help='data type')
     parser.add_argument('--All_num_layers', default=3, type=int, help='number of basic blocks')
     parser.add_argument('--MLP1_num_layers', default=2, type=int, help='layer number of mlps')
     parser.add_argument('--MLP2_num_layers', default=2, type=int, help='layer number of mlp2')
@@ -125,14 +125,11 @@ if __name__ == '__main__':
 
     transform = T.Compose([OneTarget(target=args.target)])
 
-    if args.method == 'mhnn' or 'mhnns':
-        train_dataset = OPVHGraph(root=args.data_dir, polymer=args.polymer, partition='train', transform=transform)
-        valid_dataset = OPVHGraph(root=args.data_dir, polymer=args.polymer, partition='valid', transform=transform)
-        test_dataset = OPVHGraph(root=args.data_dir, polymer=args.polymer, partition='test', transform=transform)
-    else:
-        train_dataset = OPVGraph(root=args.data_dir, polymer=args.polymer, partition='train', transform=transform)
-        valid_dataset = OPVGraph(root=args.data_dir, polymer=args.polymer, partition='valid', transform=transform)
-        test_dataset = OPVGraph(root=args.data_dir, polymer=args.polymer, partition='test', transform=transform)
+    data_cls = create_data(data_name=args.data)
+    
+    train_dataset = data_cls(root=args.data_dir, polymer=args.polymer, partition='train', transform=transform)
+    valid_dataset = data_cls(root=args.data_dir, polymer=args.polymer, partition='valid', transform=transform)
+    test_dataset = data_cls(root=args.data_dir, polymer=args.polymer, partition='test', transform=transform)
 
     # Normalize targets to mean = 0 and std = 1.
     mean = train_dataset._data.y.mean(dim=0, keepdim=True)

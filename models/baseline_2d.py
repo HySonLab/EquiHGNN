@@ -5,6 +5,7 @@ from torch_geometric.nn.aggr import Set2Set
 import torch.nn.functional as F
 from torch_geometric.utils import degree
 from ogb.graphproppred.mol_encoder import AtomEncoder, BondEncoder
+from common.registry import registry
 
 
 class GINConv(MessagePassing):
@@ -62,6 +63,10 @@ class GCNConv(MessagePassing):
         return aggr_out
 
 
+@registry.register_model("gin")
+@registry.register_model("gcn")
+@registry.register_model("gat")
+@registry.register_model("gatv2")
 class GNN_2D(torch.nn.Module):
 
     def __init__(self, num_tasks, num_layer=5, emb_dim=300, gnn_type='gin',

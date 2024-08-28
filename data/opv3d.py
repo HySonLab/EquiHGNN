@@ -16,6 +16,7 @@ from rdkit import Chem
 from ogb.utils import smiles2graph
 
 from data.utils import smi2hgraph, edge_order, HData
+from common.registry import registry
 
 def download_url(url, output_path):
     if not os.path.exists(output_path):
@@ -120,6 +121,8 @@ class OPVBase(InMemoryDataset):
         df_test = pd.read_csv(osp.join(self.raw_dir, 'mol_test.csv'))
         self.extract_sdf_csv(df_test, raw_paths[6], raw_paths[7])
 
+
+@registry.register_data("opv_hg_3d")
 class OPVHGraph3D(OPVBase):
 
     __doc__ = OPVBase.__doc__
@@ -199,6 +202,7 @@ class OPVHGraph3D(OPVBase):
             torch.save(self.collate(data_list), self.processed_paths[0])
             
 
+@registry.register_data("opv_g_3d")
 class OPVGraph3D(OPVBase):
     
     __doc__ = OPVBase.__doc__
@@ -260,6 +264,8 @@ class OPVGraph3D(OPVBase):
             data_list = self.compute_3dgraph(self.raw_paths[6], self.raw_paths[7])
             torch.save(self.collate(data_list), self.processed_paths[0])
 
+
+@registry.register_data("opv_hg")
 class OPVHGraph(OPVBase):
 
     __doc__ = OPVBase.__doc__
@@ -331,6 +337,8 @@ class OPVHGraph(OPVBase):
             data_list = self.compute_hgraph(self.raw_paths[3])
             torch.save(self.collate(data_list), self.processed_paths[0])
 
+
+@registry.register_data("opv_g")
 class OPVGraph(OPVBase):
 
     __doc__ = OPVBase.__doc__

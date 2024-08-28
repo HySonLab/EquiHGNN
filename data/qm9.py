@@ -13,9 +13,9 @@ from torch_geometric.data import (
 import torch.hub
 
 from rdkit import Chem
-from ogb.utils import smiles2graph
 
 from data.utils import smi2hgraph, edge_order, HData
+from common.registry import registry
 
 def download_url(url, output_path):
     if not os.path.exists(output_path):
@@ -87,6 +87,8 @@ class QM9Base(InMemoryDataset):
             osp.join(self.raw_dir, "uncharacterized.txt"),
         )
 
+
+@registry.register_data("qm9_hg_3d")
 class QM9HGraph3D(QM9Base):
 
     __doc__ = QM9Base.__doc__
@@ -110,7 +112,7 @@ class QM9HGraph3D(QM9Base):
             y = torch.tensor([target[i]], dtype=torch.float)
                 
             smi = Chem.MolToSmiles(mol, isomericSmiles=True)
-            atom_fvs, n_idx, e_idx, bond_fvs = mol2hgraph(mol)
+            atom_fvs, n_idx, e_idx, bond_fvs = smi2hgraph(mol)
             x = torch.tensor(atom_fvs, dtype=torch.long)
             edge_index0 = torch.tensor(n_idx, dtype=torch.long)
             edge_index1 = torch.tensor(e_idx, dtype=torch.long)
@@ -141,6 +143,7 @@ class QM9HGraph3D(QM9Base):
         torch.save(self.collate(data_list), self.processed_paths[0])
 
 
+@registry.register_data("qm9_hg")
 class QM9HGraph(QM9Base):
 
     __doc__ = QM9Base.__doc__
@@ -161,7 +164,7 @@ class QM9HGraph(QM9Base):
         for i, mol in enumerate(tqdm(suppl)):
             # smi = Chem.MolToSmiles(mol, isomericSmiles=True)
             # atom_fvs, n_idx, e_idx, bond_fvs = smi2hgraph(smi)
-            atom_fvs, n_idx, e_idx, bond_fvs = mol2hgraph(mol)
+            atom_fvs, n_idx, e_idx, bond_fvs = smi2hgraph(mol)
             x = torch.tensor(atom_fvs, dtype=torch.long)
             edge_index0 = torch.tensor(n_idx, dtype=torch.long)
             edge_index1 = torch.tensor(e_idx, dtype=torch.long)

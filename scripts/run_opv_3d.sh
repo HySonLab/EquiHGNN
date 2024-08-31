@@ -24,5 +24,5 @@ python -u train_opv.py \
     --wd 0 \
     --clip_gnorm 5.0 \
     --dropout 0.0 \
-    --batch_size 1024 \
-    --epochs 10
+    --batch_size 768 \
+    --epochs 400

@@ -7,7 +7,7 @@ import torch_geometric.transforms as T
 from torch_geometric.loader import DataLoader
 
 from models import *
-from data import OPVHGraph, OPVGraph, OneTarget
+from data import OneTarget
 from utils import create_model, create_data
 
 import pytorch_lightning as pl
@@ -215,7 +215,7 @@ if __name__ == '__main__':
         )
 
         trainer.fit(model, train_loader, valid_loader)
-        trainer.test(model, test_loader)
+        trainer.test(model, test_loader, ckpt_path="best")
 
     print('Task end time:')
     print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))

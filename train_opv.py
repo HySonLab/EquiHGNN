@@ -1,3 +1,4 @@
+import os
 import time
 import argparse
 import torch
@@ -10,9 +11,10 @@ from data import OPVHGraph, OPVGraph, OneTarget
 from utils import create_model, create_data
 
 import pytorch_lightning as pl
-from pytorch_lightning.loggers import CSVLogger, WandbLogger
+from pytorch_lightning.loggers import CSVLogger, CometLogger
 from torchmetrics.wrappers import BootStrapper
-from torchmetrics.regression import MeanAbsoluteError
+from torchmetrics.regression import MeanAbsoluteError, MeanSquaredError
+from torchmetrics import MetricCollection
 
 class LitModel(pl.LightningModule):
     def __init__(self, hparams, std=None):
@@ -28,10 +30,18 @@ class LitModel(pl.LightningModule):
             self.model = model_cls(1, self.hparams)
         
         self.mse_loss_fn = nn.MSELoss()
-        self.mae_loss_fn = BootStrapper(
-            base_metric=MeanAbsoluteError(),
-            num_bootstraps=50
-            )
+        self.eval_metrics = MetricCollection(
+            {
+            "mae": BootStrapper(
+                base_metric=MeanAbsoluteError(),
+                num_bootstraps=50
+                ),
+            "mse": BootStrapper(
+                base_metric=MeanSquaredError(),
+                num_bootstraps=50
+                ),
+            }
+        )
 
     def forward(self, data):
         return self.model(data)
@@ -47,35 +57,37 @@ class LitModel(pl.LightningModule):
     def validation_step(self, data, batch_idx):
         out = self(data)
         if self.std:
-            self.mae_loss_fn.update(out * self.std, data.y * self.std)
+            self.eval_metrics.update(out * self.std, data.y * self.std)
         else:
-            self.mae_loss_fn.update(out, data.y)
+            self.eval_metrics.update(out, data.y)
 
     def on_validation_epoch_end(self):
-        mae_loss = self.mae_loss_fn.compute()
-        self.log_dict(mae_loss)
+        mae_loss = self.eval_metrics.compute()
+        mae_loss = {f"val_{k}": v for k, v in mae_loss.items()}
+        self.log_dict(mae_loss, prog_bar=True)
 
         lr = self.optimizers().param_groups[0]['lr']
         self.log('lr', float(f"{lr:.5e}"), on_step=False, on_epoch=True, prog_bar=True, batch_size=self.hparams.batch_size)
 
-        self.mae_loss_fn.reset()
+        self.eval_metrics.reset()
 
 
     def test_step(self, data, batch_idx):
         out = self(data)
         if self.std:
-            self.mae_loss_fn.update(out * self.std, data.y * self.std)
+            self.eval_metrics.update(out * self.std, data.y * self.std)
         else:
-            self.mae_loss_fn.update(out, data.y)
+            self.eval_metrics.update(out, data.y)
 
     def on_test_epoch_end(self):
-        mae_loss = self.mae_loss_fn.compute()
+        mae_loss = self.eval_metrics.compute()
+        mae_loss = {f"test_{k}": v for k, v in mae_loss.items()}
         self.log_dict(mae_loss)
 
         lr = self.optimizers().param_groups[0]['lr']
         self.log('lr', float(f"{lr:.5e}"), on_step=False, on_epoch=True, prog_bar=True, batch_size=self.hparams.batch_size)
 
-        self.mae_loss_fn.reset()
+        self.eval_metrics.reset()
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.model.parameters(), lr=self.hparams.lr, weight_decay=self.hparams.wd)
@@ -84,7 +96,7 @@ class LitModel(pl.LightningModule):
             'optimizer': optimizer,
             'lr_scheduler': {
                 'scheduler': scheduler,
-                'monitor': 'mean'
+                'monitor': 'val_mae_mean'
             }
         }
 
@@ -161,14 +173,15 @@ if __name__ == '__main__':
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=8)
 
     # Set up loggers
-    csv_logger = CSVLogger(save_dir='logs/', name="opv_" + str(args.target) + "_" + args.method)
-    # wandb_logger = WandbLogger(
-    # project="Geometric Molecular Hypergraph",
-    # name=f"opv_{args.target}_{args.method}",
-    # save_dir="logs/"
-    # )
+    csv_logger = CSVLogger(save_dir='logs/', name="opv_" + str(args.target) + "_" + args.method + "_" + args.data)
+    commet_logger = CometLogger(
+        api_key=os.environ["COMET_API_KEY"] if "COMET_API_KEY" in os.environ else None,
+        project_name="Geometric Molecular Hypergraph",
+        experiment_name=f"opv_{args.target}_{args.method}_{args.data}",
+        save_dir="logs/"
+    )
     loggers = [
-        # wandb_logger, 
+        commet_logger, 
         csv_logger
         ]
     
@@ -176,12 +189,13 @@ if __name__ == '__main__':
 
     summary_callback = pl.callbacks.ModelSummary(max_depth=8)
     early_stop_callback = pl.callbacks.EarlyStopping(
-        monitor='val_loss',
-        patience=10,
+        monitor='val_mae_mean',
+        patience=5,
         verbose=True,
-        mode='min'
+        mode='min',  
         )
-    callbacks = [summary_callback]
+    
+    callbacks = [summary_callback, early_stop_callback]
 
     for run in range(args.runs):
         # Set global seed for this run

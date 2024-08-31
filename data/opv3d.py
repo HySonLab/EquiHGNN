@@ -15,7 +15,7 @@ import torch.hub
 from rdkit import Chem
 from ogb.utils import smiles2graph
 
-from data.utils import smi2hgraph, edge_order, HData
+from data.utils import smi2hgraph, edge_order, HData, mol2hgraph
 from common.registry import registry
 
 def download_url(url, output_path):
@@ -146,20 +146,26 @@ class OPVHGraph3D(OPVBase):
     def compute_3dhgraph(self, sdf_path, csv_path):
         suppl = Chem.SDMolSupplier(sdf_path, removeHs=False, sanitize=False)
         df = pd.read_csv(csv_path)
-        smiles = df['smile'].values.tolist()
         target = df.iloc[:, 2:].values.tolist()
         
         data_list = []
         for i, mol in enumerate(tqdm(suppl)):
+            if mol is None:
+                continue
+
             conf = mol.GetConformer()
             pos = conf.GetPositions()
             pos = torch.tensor(pos, dtype=torch.float)
             atomic_number = [atom.GetAtomicNum() for atom in mol.GetAtoms()]
             z = torch.tensor(atomic_number, dtype=torch.long)
             y = torch.tensor([target[i]], dtype=torch.float)
-                
-            smi = smiles[i]
-            atom_fvs, n_idx, e_idx, bond_fvs = smi2hgraph(smi)
+            
+            try:
+                atom_fvs, n_idx, e_idx, bond_fvs = mol2hgraph(mol)
+            except Exception as e:
+                print(e)
+                continue
+
             x = torch.tensor(atom_fvs, dtype=torch.long)
             edge_index0 = torch.tensor(n_idx, dtype=torch.long)
             edge_index1 = torch.tensor(e_idx, dtype=torch.long)
@@ -167,9 +173,8 @@ class OPVHGraph3D(OPVBase):
             n_e = len(edge_index1.unique())
             e_order = torch.tensor(edge_order(e_idx), dtype=torch.long)
             
-            data = Data(x=x, z=z, pos=pos, y=y, idx=i,
+            data = HData(x=x, z=z, pos=pos, y=y, idx=i,
                         n_e=n_e, 
-                        # smi=smi,
                         edge_index0=edge_index0,
                         edge_index1=edge_index1,
                         edge_attr=edge_attr,

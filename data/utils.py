@@ -89,24 +89,56 @@ def smi2hgraph(smiles_string):
         bond_fvs = np.empty((0, num_bond_features), dtype=np.int64)
         return (atom_fvs, n_idx, e_idx, bond_fvs)
     
-    # hyperedges for rings
-    cells = extract_ring_info(mol=mol)
-    he_n, he_e = [], []
-
-    for idx, (node_idc, fvs) in enumerate(cells):
-        for atom_idx in node_idc:
-            he_n.append(atom_idx)
-            he_e.append(idx)
-
-        # TODO: explore an ideal ring feature
-        # Use 'has_heteroatom' as feature
-        bond_fvs += [[int(fvs[-2])]]
-
+    # hyperedges for conjugated bonds
+    he_n, he_e = he_conj(mol)
     num_bond = mol.GetNumBonds()
     if len(he_n) != 0:
         he_e = [_id + num_bond for _id in he_e]
         n_idx += he_n
         e_idx += he_e
+        bond_fvs += len(set(he_e)) * [num_bond_features * [5]]
+
+    return (atom_fvs, n_idx, e_idx, bond_fvs)
+
+
+def mol2hgraph(mol):
+    """
+    Converts an RDKit Mol object to a hypergraph Data object.
+    :input: RDKit Mol object
+    :return: graph object
+    """
+
+    # atoms
+    atom_fvs = []
+    for atom in mol.GetAtoms():
+        atom_fvs.append(atom_to_feature_vector(atom))
+
+    # bonds
+    num_bond_features = 1  # bond type (single, double, triple, conjugated)
+    if len(mol.GetBonds()) > 0:  # mol has bonds
+        n_idx, e_idx, bond_fvs = [], [], []
+        for i, bond in enumerate(mol.GetBonds()):
+            n_idx.append(bond.GetBeginAtomIdx())
+            n_idx.append(bond.GetEndAtomIdx())
+            e_idx.append(i)
+            e_idx.append(i)
+            bond_type = bond_to_feature_vector(bond)[0]
+            bond_fvs.append([bond_type])
+
+    else:  # mol has no bonds
+        print('Invalid molecule: {}'.format(Chem.MolToSmiles(mol)))
+        n_idx, e_idx = [], []
+        bond_fvs = np.empty((0, num_bond_features), dtype=np.int64)
+        return (atom_fvs, n_idx, e_idx, bond_fvs)
+
+    # hyperedges for conjugated bonds
+    he_n, he_e = he_conj(mol)
+    num_bond = mol.GetNumBonds()
+    if len(he_n) != 0:
+        he_e = [_id + num_bond for _id in he_e]
+        n_idx += he_n
+        e_idx += he_e
+        bond_fvs += len(set(he_e)) * [num_bond_features * [5]]
 
     return (atom_fvs, n_idx, e_idx, bond_fvs)
 

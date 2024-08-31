@@ -5,12 +5,14 @@ import torch.nn as nn
 import torch_geometric.transforms as T
 from torch_geometric.loader import DataLoader
 
-from models import MHNN, GNN_2D, MHNNS
+from models import *
 from data import OPVHGraph, OPVGraph, OneTarget
 from utils import create_model, create_data
 
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import CSVLogger, WandbLogger
+from torchmetrics.wrappers import BootStrapper
+from torchmetrics.regression import MeanAbsoluteError
 
 class LitModel(pl.LightningModule):
     def __init__(self, hparams, std=None):
@@ -26,7 +28,10 @@ class LitModel(pl.LightningModule):
             self.model = model_cls(1, self.hparams)
         
         self.mse_loss_fn = nn.MSELoss()
-        self.mae_loss_fn = nn.L1Loss()
+        self.mae_loss_fn = BootStrapper(
+            base_metric=MeanAbsoluteError(),
+            num_bootstraps=50
+            )
 
     def forward(self, data):
         return self.model(data)
@@ -41,24 +46,36 @@ class LitModel(pl.LightningModule):
 
     def validation_step(self, data, batch_idx):
         out = self(data)
-        mae_loss = self.mae_loss_fn(out, data.y)
         if self.std:
-            mae_loss = mae_loss * self.std
-        self.log('val_mae', mae_loss, on_step=False, on_epoch=True, prog_bar=True, batch_size=self.hparams.batch_size)
+            self.mae_loss_fn.update(out * self.std, data.y * self.std)
+        else:
+            self.mae_loss_fn.update(out, data.y)
+
+    def on_validation_epoch_end(self):
+        mae_loss = self.mae_loss_fn.compute()
+        self.log_dict(mae_loss)
 
         lr = self.optimizers().param_groups[0]['lr']
         self.log('lr', float(f"{lr:.5e}"), on_step=False, on_epoch=True, prog_bar=True, batch_size=self.hparams.batch_size)
-        
-        return mae_loss
+
+        self.mae_loss_fn.reset()
+
 
     def test_step(self, data, batch_idx):
         out = self(data)
-        mae_loss = self.mae_loss_fn(out, data.y)
         if self.std:
-            mae_loss = mae_loss * self.std
-        self.log('test_mae', mae_loss, on_step=False, on_epoch=True, prog_bar=True, batch_size=self.hparams.batch_size)
-        
-        return mae_loss
+            self.mae_loss_fn.update(out * self.std, data.y * self.std)
+        else:
+            self.mae_loss_fn.update(out, data.y)
+
+    def on_test_epoch_end(self):
+        mae_loss = self.mae_loss_fn.compute()
+        self.log_dict(mae_loss)
+
+        lr = self.optimizers().param_groups[0]['lr']
+        self.log('lr', float(f"{lr:.5e}"), on_step=False, on_epoch=True, prog_bar=True, batch_size=self.hparams.batch_size)
+
+        self.mae_loss_fn.reset()
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.model.parameters(), lr=self.hparams.lr, weight_decay=self.hparams.wd)
@@ -67,7 +84,7 @@ class LitModel(pl.LightningModule):
             'optimizer': optimizer,
             'lr_scheduler': {
                 'scheduler': scheduler,
-                'monitor': 'val_mae'
+                'monitor': 'mean'
             }
         }
 

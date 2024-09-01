@@ -16,6 +16,8 @@ from torchmetrics.wrappers import BootStrapper
 from torchmetrics.regression import MeanAbsoluteError, MeanSquaredError
 from torchmetrics import MetricCollection
 
+torch.set_float32_matmul_precision("medium")
+
 class LitModel(pl.LightningModule):
     def __init__(self, hparams, std=None):
         super(LitModel, self).__init__()
@@ -139,6 +141,9 @@ if __name__ == '__main__':
     parser.add_argument('--activation', default='relu', choices=['Id', 'relu', 'prelu'])
     parser.add_argument('--dropout', default=0.0, type=float)
 
+    # Debugging
+    parser.add_argument('--debug', action="store_true", help='Debug by forwarding one step only')
+
     args = parser.parse_args()
     print(args)
 
@@ -169,24 +174,24 @@ if __name__ == '__main__':
     test_dataset._data.y = (test_dataset._data.y - mean) / std
     mean, std = mean[:, args.target].item(), std[:, args.target].item()
 
-    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=8)
-    valid_loader = DataLoader(valid_dataset, batch_size=args.batch_size, shuffle=False, num_workers=8)
-    test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=8)
+    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
+    valid_loader = DataLoader(valid_dataset, batch_size=args.batch_size, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
+
 
     # Set up loggers
-    csv_logger = CSVLogger(save_dir='logs/', name="opv_" + str(args.target) + "_" + args.method + "_" + args.data)
+    suffix = "_use_ring" if args.use_ring else "_no_ring"
+    csv_logger = CSVLogger(save_dir='logs/', name="opv_" + str(args.target) + "_" + args.method + "_" + args.data + "_" + suffix)
     commet_logger = CometLogger(
         api_key=os.environ["COMET_API_KEY"] if "COMET_API_KEY" in os.environ else None,
         project_name="Geometric Molecular Hypergraph",
-        experiment_name=f"opv_{args.target}_{args.method}_{args.data}",
+        experiment_name=f"opv_{args.target}_{args.method}_{args.data}_{suffix}",
         save_dir="logs/"
     )
     loggers = [
         commet_logger, 
         csv_logger
         ]
-    
-    # torch.set_float32_matmul_precision("medium")
 
     summary_callback = pl.callbacks.ModelSummary(max_depth=8)
     early_stop_callback = pl.callbacks.EarlyStopping(
@@ -208,15 +213,20 @@ if __name__ == '__main__':
         # Initialize Lightning model
         model = LitModel(args, std=std)
 
-        trainer = pl.Trainer(
-            max_epochs=args.epochs,
-            logger=loggers,
-            callbacks=callbacks,
-            devices=1 if torch.cuda.is_available() else 0,
-        )
+        trainer_args = {
+            "max_epochs": args.epochs,
+            "logger": loggers,
+            "callbacks": callbacks,
+            "devices": 1 if torch.cuda.is_available() else 0,
+        }
+
+        if args.debug:
+            trainer_args["fast_dev_run"] = True
+
+        trainer = pl.Trainer(**trainer_args)
 
         trainer.fit(model, train_loader, valid_loader)
-        trainer.test(model, test_loader, ckpt_path="best")
+        trainer.test(model, test_loader)
 
     print('Task end time:')
     print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))

@@ -33,7 +33,7 @@ train_opv:
 		-v $(shell pwd)/datasets:/equihgnn/datasets \
 		-v $(shell pwd)/logs:/equihgnn/logs \
 		-v $(shell pwd)/scripts:/equihgnn/scripts \
-		-e COMET_API_KEY=$COMET_API_KEY \
+		-e COMET_API_KEY=$(COMET_API_KEY) \
 		$(IMAGE_NAME) bash scripts/run_opv.sh $(TASK_ID)
 
 
@@ -58,7 +58,7 @@ train_opv3d:
 		-v $(shell pwd)/datasets:/equihgnn/datasets \
 		-v $(shell pwd)/logs:/equihgnn/logs \
 		-v $(shell pwd)/scripts:/equihgnn/scripts \
-		-e COMET_API_KEY=$COMET_API_KEY \
+		-e COMET_API_KEY=$(COMET_API_KEY) \
 		$(IMAGE_NAME) bash scripts/run_opv_3d.sh $(TASK_ID)
 
 
@@ -85,7 +85,7 @@ test_opv:
 		-v $(shell pwd)/logs:/equihgnn/logs \
 		-v $(shell pwd)/scripts:/equihgnn/scripts \
 		-v $(shell pwd)/tests:/equihgnn/tests \
-		-e COMET_API_KEY=$COMET_API_KEY \
+		-e COMET_API_KEY=$(COMET_API_KEY) \
 		$(IMAGE_NAME) bash tests/run_opv.sh 0
 	@echo "Test OPV success"
 
@@ -98,7 +98,7 @@ test_opv_3d:
 		-v $(shell pwd)/logs:/equihgnn/logs \
 		-v $(shell pwd)/scripts:/equihgnn/scripts \
 		-v $(shell pwd)/tests:/equihgnn/tests \
-		-e COMET_API_KEY=$COMET_API_KEY \
+		-e COMET_API_KEY=$(COMET_API_KEY) \
 		$(IMAGE_NAME) bash tests/run_opv_3d.sh 0
 	@echo "Test OPV-3D success"
 

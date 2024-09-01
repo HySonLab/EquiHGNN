@@ -5,8 +5,10 @@ from ogb.graphproppred.mol_encoder import AtomEncoder
 
 from models.conv import MHNNConv, MHNNSConv
 from models.mlp import MLP
+from common.registry import registry
 
 
+@registry.register_model("mhnn")
 class MHNN(nn.Module):
     def __init__(self, num_target, args):
         """ Molecular Hypergraph Neural Network (MHNN)
@@ -70,6 +72,7 @@ class MHNN(nn.Module):
         return out.view(-1)
 
 
+@registry.register_model("mhnns")
 class MHNNS(nn.Module):
     def __init__(self,  num_target, args):
         """ Molecular Hypergraph Neural Network (MHNN) simple version,
@@ -122,6 +125,7 @@ class MHNNS(nn.Module):
         return x.view(-1)
 
 
+@registry.register_model("mhnnm")
 class MHNNM(nn.Module):
     def __init__(self, num_target, args):
         """ Molecular Hypergraph Neural Network (MHNN)

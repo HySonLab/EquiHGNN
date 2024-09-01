@@ -13,6 +13,7 @@ COPY ./data /equihgnn/data
 COPY ./models /equihgnn/models
 COPY ./scripts /equihgnn/scripts
 COPY ./utils /equihgnn/utils
+COPY ./common /equihgnn/common
 COPY ./train_opv.py /equihgnn/train_opv.py
 COPY ./train_qm9.py /equihgnn/train_qm9.py
 

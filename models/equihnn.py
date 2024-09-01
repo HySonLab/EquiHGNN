@@ -5,12 +5,17 @@ from ogb.graphproppred.mol_encoder import AtomEncoder
 
 from models.conv import MHNNConv, MHNNSConv
 from models.mlp import MLP
+from common.registry import registry
+from e3nn.o3 import SphericalHarmonics
 
-
-class MHNN3D(nn.Module):
+@registry.register_model("equihnn")
+class EquiHNN(nn.Module):
     def __init__(self, num_target, args):
-        """ Molecular Hypergraph Neural Network (MHNN)
+        """ Equivariant Molecular Hypergraph Neural Network
         (Shared parameters between all message passing layers)
+
+        This is built upon MHNNM, but it has been incorporated spherical harmonic
+        for transforming 3D coordinate information.
 
         Args:
             num_target (int): number of output targets
@@ -27,7 +32,14 @@ class MHNN3D(nn.Module):
         self.mlp4_layers = args.MLP4_num_layers
         self.nlayer = args.All_num_layers
 
-        self.atom_encoder = AtomEncoder(emb_dim=args.MLP_hidden)
+        self.spherical_harmonic_transform = SphericalHarmonics(
+            irreps_out="1x1o",
+            normalize=True,
+            normalization="integral",
+            irreps_in="1x1o"
+        )
+
+        self.atom_encoder = AtomEncoder(emb_dim=args.MLP_hidden - 3)
         self.bond_encoder = nn.Embedding(6, args.MLP_hidden)
 
         self.conv = MHNNConv(args.MLP_hidden, mlp1_layers=self.mlp1_layers, mlp2_layers=self.mlp2_layers,
@@ -43,7 +55,6 @@ class MHNN3D(nn.Module):
             InputNorm=False)
 
     def forward(self, data):
-
         V, E = data.edge_index0, data.edge_index1
         e_batch = []
         for i in range(data.n_e.shape[0]):
@@ -52,6 +63,9 @@ class MHNN3D(nn.Module):
         he_batch = e_batch[data.e_order > 2]
 
         x = self.atom_encoder(data.x)
+        pos = self.spherical_harmonic_transform(data.pos)
+        x = torch.cat([x, pos], -1)
+
         e = self.bond_encoder(data.edge_attr.squeeze())
 
         for i in range(self.nlayer):
@@ -70,11 +84,14 @@ class MHNN3D(nn.Module):
         return out.view(-1)
 
 
-class MHNNS3D(nn.Module):
+@registry.register_model("equihnns")
+class EquiHNNS(nn.Module):
     def __init__(self,  num_target, args):
-        """ Molecular Hypergraph Neural Network (MHNN) simple version,
-        which has similar performance with MHNN but smaller and faster.
+        """ Equivariant Molecular Hypergraph Neural Network,
         (Shared parameters between all message passing layers)
+
+        This is built upon MHNN, but it has been incorporated spherical harmonic
+        for transforming 3D coordinate information.
 
         Args:
             num_target (int): number of output targets
@@ -90,7 +107,14 @@ class MHNNS3D(nn.Module):
         self.mlp3_layers = args.MLP3_num_layers
         self.nlayer = args.All_num_layers
 
-        self.atom_encoder = AtomEncoder(emb_dim=args.MLP_hidden)
+        self.atom_encoder = AtomEncoder(emb_dim=args.MLP_hidden-3)
+
+        self.spherical_harmonic_transform = SphericalHarmonics(
+            irreps_out="1x1o",
+            normalize=True,
+            normalization="integral",
+            irreps_in="1x1o"
+        )
         self.conv = MHNNSConv(args.MLP_hidden, mlp1_layers=self.mlp1_layers,
             mlp2_layers=self.mlp2_layers, mlp3_layers=self.mlp3_layers,
             aggr=args.aggregate, dropout=args.dropout,
@@ -111,9 +135,8 @@ class MHNNS3D(nn.Module):
     def forward(self, data):
         V, E = data.edge_index0, data.edge_index1
         x = self.atom_encoder(data.x)
-        
-        pos = data.pos
-        z = data.z
+        pos = self.spherical_harmonic_transform(data.pos)
+        x = torch.cat([x, pos], -1)
 
         x0 = x
         for i in range(self.nlayer):
@@ -126,10 +149,14 @@ class MHNNS3D(nn.Module):
         return x.view(-1)
 
 
-class MHNNM(nn.Module):
+@registry.register_model("equihnnm")
+class EquiHNNM(nn.Module):
     def __init__(self, num_target, args):
-        """ Molecular Hypergraph Neural Network (MHNN)
+        """ Equivariant Molecular Hypergraph Neural Network (MHNN)
         (Multiple message passing layers, no parameters shared between layers)
+
+        This is built upon MHNNM, but it has been incorporated spherical harmonic
+        for transforming 3D coordinate information.
 
         Args:
             num_target (int): number of output targets
@@ -145,7 +172,13 @@ class MHNNM(nn.Module):
         self.mlp4_layers = args.MLP4_num_layers
         self.nlayer = args.All_num_layers
 
-        self.atom_encoder = AtomEncoder(emb_dim=args.MLP_hidden)
+        self.spherical_harmonic_transform = SphericalHarmonics(
+            irreps_out="1x1o",
+            normalize=True,
+            normalization="integral",
+            irreps_in="1x1o"
+        )
+        self.atom_encoder = AtomEncoder(emb_dim=args.MLP_hidden-3)
         self.bond_encoder = nn.Embedding(6, args.MLP_hidden)
 
         self.layers = nn.ModuleList()
@@ -179,6 +212,9 @@ class MHNNM(nn.Module):
         e_batch = torch.tensor(e_batch, dtype=torch.long, device=data.x.device)
 
         x = self.atom_encoder(data.x)
+        pos = self.spherical_harmonic_transform(data.pos)
+        x = torch.cat([x, pos], -1)
+        
         e = self.bond_encoder(data.edge_attr.squeeze())
 
         for i, layer in enumerate(self.layers):

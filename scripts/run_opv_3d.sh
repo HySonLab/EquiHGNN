@@ -6,8 +6,8 @@ set -euxo pipefail
 TASK=$1
 
 python -u train_opv.py \
-    --method mhnns \
-    --data opv_hg \
+    --method equihnns \
+    --data opv_hg_3d \
     --use_ring \
     --runs 1 \
     --target $TASK \

@@ -1,3 +1,4 @@
+import os
 import time
 import argparse
 import torch
@@ -5,29 +6,42 @@ import torch.nn as nn
 import torch_geometric.transforms as T
 from torch_geometric.loader import DataLoader
 
-from models import MHNN, GNN_2D, MHNNS
-from data import OPVHGraph, OPVGraph, OneTarget
+from models import *
+from data import OneTarget
+from utils import create_model, create_data
 
 import pytorch_lightning as pl
-from pytorch_lightning.loggers import CSVLogger, WandbLogger
+from pytorch_lightning.loggers import CSVLogger, CometLogger
+from torchmetrics.wrappers import BootStrapper
+from torchmetrics.regression import MeanAbsoluteError, MeanSquaredError
+from torchmetrics import MetricCollection
 
 class LitModel(pl.LightningModule):
     def __init__(self, hparams, std=None):
         super(LitModel, self).__init__()
         self.save_hyperparameters(hparams)
         self.std = std
+
         # Initialize the model based on the method
-        if self.hparams.method == 'mhnn':
-            self.model = MHNN(1, self.hparams)
-        elif self.hparams.method == 'mhnns':
-            self.model = MHNNS(1, self.hparams)
-        elif self.hparams.method in ['gin', 'gcn', 'gat', 'gatv2']:
-            self.model = GNN_2D(1, gnn_type=self.hparams.method, drop_ratio=self.hparams.dropout)
+        model_cls = create_model(model_name=self.hparams.method)
+        if model_cls.__name__ == "GNN_2D":
+            self.model = model_cls(1, gnn_type=self.hparams.method, drop_ratio=self.hparams.dropout)
         else:
-            raise ValueError(f'Undefined model name: {self.hparams.method}')
+            self.model = model_cls(1, self.hparams)
         
         self.mse_loss_fn = nn.MSELoss()
-        self.mae_loss_fn = nn.L1Loss()
+        self.eval_metrics = MetricCollection(
+            {
+            "mae": BootStrapper(
+                base_metric=MeanAbsoluteError(),
+                num_bootstraps=50
+                ),
+            "mse": BootStrapper(
+                base_metric=MeanSquaredError(),
+                num_bootstraps=50
+                ),
+            }
+        )
 
     def forward(self, data):
         return self.model(data)
@@ -42,24 +56,38 @@ class LitModel(pl.LightningModule):
 
     def validation_step(self, data, batch_idx):
         out = self(data)
-        mae_loss = self.mae_loss_fn(out, data.y)
         if self.std:
-            mae_loss = mae_loss * self.std
-        self.log('val_mae', mae_loss, on_step=False, on_epoch=True, prog_bar=True, batch_size=self.hparams.batch_size)
+            self.eval_metrics.update(out * self.std, data.y * self.std)
+        else:
+            self.eval_metrics.update(out, data.y)
+
+    def on_validation_epoch_end(self):
+        mae_loss = self.eval_metrics.compute()
+        mae_loss = {f"val_{k}": v for k, v in mae_loss.items()}
+        self.log_dict(mae_loss, prog_bar=True)
 
         lr = self.optimizers().param_groups[0]['lr']
         self.log('lr', float(f"{lr:.5e}"), on_step=False, on_epoch=True, prog_bar=True, batch_size=self.hparams.batch_size)
-        
-        return mae_loss
+
+        self.eval_metrics.reset()
+
 
     def test_step(self, data, batch_idx):
         out = self(data)
-        mae_loss = self.mae_loss_fn(out, data.y)
         if self.std:
-            mae_loss = mae_loss * self.std
-        self.log('test_mae', mae_loss, on_step=False, on_epoch=True, prog_bar=True, batch_size=self.hparams.batch_size)
-        
-        return mae_loss
+            self.eval_metrics.update(out * self.std, data.y * self.std)
+        else:
+            self.eval_metrics.update(out, data.y)
+
+    def on_test_epoch_end(self):
+        mae_loss = self.eval_metrics.compute()
+        mae_loss = {f"test_{k}": v for k, v in mae_loss.items()}
+        self.log_dict(mae_loss)
+
+        lr = self.optimizers().param_groups[0]['lr']
+        self.log('lr', float(f"{lr:.5e}"), on_step=False, on_epoch=True, prog_bar=True, batch_size=self.hparams.batch_size)
+
+        self.eval_metrics.reset()
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.model.parameters(), lr=self.hparams.lr, weight_decay=self.hparams.wd)
@@ -68,7 +96,7 @@ class LitModel(pl.LightningModule):
             'optimizer': optimizer,
             'lr_scheduler': {
                 'scheduler': scheduler,
-                'monitor': 'val_mae'
+                'monitor': 'val_mae_mean'
             }
         }
 
@@ -82,6 +110,8 @@ if __name__ == '__main__':
     # Dataset arguments
     parser.add_argument('--data_dir', type=str, default="datasets/opv3d")
     parser.add_argument('--target', type=int, default=0, help='target of dataset')
+    parser.add_argument('--data', default='opv_hg', help='data type')
+    parser.add_argument('--use_ring', action="store_true", help='using rings with conjugated bonds')
 
     # Training hyperparameters
     parser.add_argument('--runs', default=1, type=int)
@@ -125,14 +155,11 @@ if __name__ == '__main__':
 
     transform = T.Compose([OneTarget(target=args.target)])
 
-    if args.method == 'mhnn' or 'mhnns':
-        train_dataset = OPVHGraph(root=args.data_dir, polymer=args.polymer, partition='train', transform=transform)
-        valid_dataset = OPVHGraph(root=args.data_dir, polymer=args.polymer, partition='valid', transform=transform)
-        test_dataset = OPVHGraph(root=args.data_dir, polymer=args.polymer, partition='test', transform=transform)
-    else:
-        train_dataset = OPVGraph(root=args.data_dir, polymer=args.polymer, partition='train', transform=transform)
-        valid_dataset = OPVGraph(root=args.data_dir, polymer=args.polymer, partition='valid', transform=transform)
-        test_dataset = OPVGraph(root=args.data_dir, polymer=args.polymer, partition='test', transform=transform)
+    data_cls = create_data(data_name=args.data)
+    
+    train_dataset = data_cls(root=args.data_dir, polymer=args.polymer, partition='train', transform=transform, use_ring=args.use_ring)
+    valid_dataset = data_cls(root=args.data_dir, polymer=args.polymer, partition='valid', transform=transform, use_ring=args.use_ring)
+    test_dataset = data_cls(root=args.data_dir, polymer=args.polymer, partition='test', transform=transform, use_ring=args.use_ring)
 
     # Normalize targets to mean = 0 and std = 1.
     mean = train_dataset._data.y.mean(dim=0, keepdim=True)
@@ -147,14 +174,15 @@ if __name__ == '__main__':
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=8)
 
     # Set up loggers
-    csv_logger = CSVLogger(save_dir='logs/', name="opv_" + str(args.target) + "_" + args.method)
-    # wandb_logger = WandbLogger(
-    # project="Geometric Molecular Hypergraph",
-    # name=f"opv_{args.target}_{args.method}",
-    # save_dir="logs/"
-    # )
+    csv_logger = CSVLogger(save_dir='logs/', name="opv_" + str(args.target) + "_" + args.method + "_" + args.data)
+    commet_logger = CometLogger(
+        api_key=os.environ["COMET_API_KEY"] if "COMET_API_KEY" in os.environ else None,
+        project_name="Geometric Molecular Hypergraph",
+        experiment_name=f"opv_{args.target}_{args.method}_{args.data}",
+        save_dir="logs/"
+    )
     loggers = [
-        # wandb_logger, 
+        commet_logger, 
         csv_logger
         ]
     
@@ -162,12 +190,13 @@ if __name__ == '__main__':
 
     summary_callback = pl.callbacks.ModelSummary(max_depth=8)
     early_stop_callback = pl.callbacks.EarlyStopping(
-        monitor='val_loss',
-        patience=10,
+        monitor='val_mae_mean',
+        patience=5,
         verbose=True,
-        mode='min'
+        mode='min',  
         )
-    callbacks = [summary_callback]
+    
+    callbacks = [summary_callback, early_stop_callback]
 
     for run in range(args.runs):
         # Set global seed for this run
@@ -187,7 +216,7 @@ if __name__ == '__main__':
         )
 
         trainer.fit(model, train_loader, valid_loader)
-        trainer.test(model, test_loader)
+        trainer.test(model, test_loader, ckpt_path="best")
 
     print('Task end time:')
     print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))

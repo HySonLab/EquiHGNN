@@ -8,6 +8,7 @@ TASK=$1
 python -u train_opv.py \
     --method equihnns \
     --data opv_hg_3d \
+    --use_ring \
     --runs 1 \
     --target $TASK \
     --All_num_layers 3 \

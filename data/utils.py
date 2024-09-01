@@ -57,7 +57,7 @@ def edge_order(e_idx):
     return e_order
 
 
-def smi2hgraph(smiles_string):
+def smi2hgraph(smiles_string, use_ring:bool=False):
     """
     Converts a SMILES string to hypergraph Data object
     :input: SMILES string (str)
@@ -97,11 +97,27 @@ def smi2hgraph(smiles_string):
         n_idx += he_n
         e_idx += he_e
         bond_fvs += len(set(he_e)) * [num_bond_features * [5]]
+    
+    if use_ring:
+        cells = extract_ring_info(mol=mol)
+        ring_he_n, ring_he_e = [], []
+        for idx, (node_idc, fvs) in enumerate(cells):
+            for atom_idx in node_idc:
+                ring_he_n.append(atom_idx)
+                ring_he_e.append(idx)
+
+            # Use 'has_heteroatom' as the ring feature
+            bond_fvs.append([int(fvs[-2])])
+
+        if len(ring_he_n) != 0:
+            ring_he_e = [_id + num_bond + len(set(he_e)) for _id in ring_he_e]
+            n_idx += ring_he_n
+            e_idx += ring_he_e
 
     return (atom_fvs, n_idx, e_idx, bond_fvs)
 
 
-def mol2hgraph(mol):
+def mol2hgraph(mol, use_ring:bool=False):
     """
     Converts an RDKit Mol object to a hypergraph Data object.
     :input: RDKit Mol object
@@ -139,6 +155,22 @@ def mol2hgraph(mol):
         n_idx += he_n
         e_idx += he_e
         bond_fvs += len(set(he_e)) * [num_bond_features * [5]]
+
+    if use_ring:
+        cells = extract_ring_info(mol=mol)
+        ring_he_n, ring_he_e = [], []
+        for idx, (node_idc, fvs) in enumerate(cells):
+            for atom_idx in node_idc:
+                ring_he_n.append(atom_idx)
+                ring_he_e.append(idx)
+
+            # Use 'has_heteroatom' as the ring feature
+            bond_fvs.append([int(fvs[0])])
+
+        if len(ring_he_n) != 0:
+            ring_he_e = [_id + num_bond + len(set(he_e)) for _id in ring_he_e]
+            n_idx += ring_he_n
+            e_idx += ring_he_e
 
     return (atom_fvs, n_idx, e_idx, bond_fvs)
 

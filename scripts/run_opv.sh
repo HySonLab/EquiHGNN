@@ -8,6 +8,7 @@ TASK=$1
 python -u train_opv.py \
     --method mhnns \
     --data opv_hg \
+    --use_ring \
     --runs 1 \
     --target $TASK \
     --All_num_layers 3 \

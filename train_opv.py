@@ -110,6 +110,8 @@ if __name__ == '__main__':
     # Dataset arguments
     parser.add_argument('--data_dir', type=str, default="datasets/opv3d")
     parser.add_argument('--target', type=int, default=0, help='target of dataset')
+    parser.add_argument('--data', default='opv_hg', help='data type')
+    parser.add_argument('--use_ring', action="store_true", help='using rings with conjugated bonds')
 
     # Training hyperparameters
     parser.add_argument('--runs', default=1, type=int)
@@ -124,7 +126,6 @@ if __name__ == '__main__':
 
     # Model hyperparameters
     parser.add_argument('--method', default='mhnns', help='model type')
-    parser.add_argument('--data', default='opv_hg', help='data type')
     parser.add_argument('--All_num_layers', default=3, type=int, help='number of basic blocks')
     parser.add_argument('--MLP1_num_layers', default=2, type=int, help='layer number of mlps')
     parser.add_argument('--MLP2_num_layers', default=2, type=int, help='layer number of mlp2')
@@ -156,9 +157,9 @@ if __name__ == '__main__':
 
     data_cls = create_data(data_name=args.data)
     
-    train_dataset = data_cls(root=args.data_dir, polymer=args.polymer, partition='train', transform=transform)
-    valid_dataset = data_cls(root=args.data_dir, polymer=args.polymer, partition='valid', transform=transform)
-    test_dataset = data_cls(root=args.data_dir, polymer=args.polymer, partition='test', transform=transform)
+    train_dataset = data_cls(root=args.data_dir, polymer=args.polymer, partition='train', transform=transform, use_ring=args.use_ring)
+    valid_dataset = data_cls(root=args.data_dir, polymer=args.polymer, partition='valid', transform=transform, use_ring=args.use_ring)
+    test_dataset = data_cls(root=args.data_dir, polymer=args.polymer, partition='test', transform=transform, use_ring=args.use_ring)
 
     # Normalize targets to mean = 0 and std = 1.
     mean = train_dataset._data.y.mean(dim=0, keepdim=True)

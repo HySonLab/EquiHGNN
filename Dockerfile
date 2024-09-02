@@ -15,8 +15,7 @@ COPY ./scripts /equihgnn/scripts
 COPY ./tests /equihgnn/tests
 COPY ./utils /equihgnn/utils
 COPY ./common /equihgnn/common
-COPY ./train_opv.py /equihgnn/train_opv.py
-COPY ./train_qm9.py /equihgnn/train_qm9.py
+COPY ./main.py /equihgnn/main.py
 
 COPY pyproject.toml .
 RUN pip install -e .

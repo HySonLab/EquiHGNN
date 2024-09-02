@@ -79,27 +79,33 @@ train_opv3d_all:
 
 test_opv:
 	@echo "Test OPV"
-	@docker run \
-		--gpus all \
-		-v $(shell pwd)/datasets:/equihgnn/datasets \
-		-v $(shell pwd)/logs:/equihgnn/logs \
-		-v $(shell pwd)/scripts:/equihgnn/scripts \
-		-v $(shell pwd)/tests:/equihgnn/tests \
-		-e COMET_API_KEY=$(COMET_API_KEY) \
-		$(IMAGE_NAME) bash tests/run_opv.sh 0
+	@for id in $(TASK_ID_RANGE); do \
+		echo "Running task with TASK_ID=$$id"; \
+		docker run \
+			--gpus all \
+			-v $(shell pwd)/datasets:/equihgnn/datasets \
+			-v $(shell pwd)/logs:/equihgnn/logs \
+			-v $(shell pwd)/scripts:/equihgnn/scripts \
+			-v $(shell pwd)/tests:/equihgnn/tests \
+			-e COMET_API_KEY=$(COMET_API_KEY) \
+			$(IMAGE_NAME) bash tests/run_opv.sh $$id; \
+	done
 	@echo "Test OPV success"
 
 
 test_opv_3d:
 	@echo "Test OPV-3D"
-	@docker run \
-		--gpus all \
-		-v $(shell pwd)/datasets:/equihgnn/datasets \
-		-v $(shell pwd)/logs:/equihgnn/logs \
-		-v $(shell pwd)/scripts:/equihgnn/scripts \
-		-v $(shell pwd)/tests:/equihgnn/tests \
-		-e COMET_API_KEY=$(COMET_API_KEY) \
-		$(IMAGE_NAME) bash tests/run_opv_3d.sh 0
+	@for id in $(TASK_ID_RANGE); do \
+		echo "Running task with TASK_ID=$$id"; \
+		docker run \
+			--gpus all \
+			-v $(shell pwd)/datasets:/equihgnn/datasets \
+			-v $(shell pwd)/logs:/equihgnn/logs \
+			-v $(shell pwd)/scripts:/equihgnn/scripts \
+			-v $(shell pwd)/tests:/equihgnn/tests \
+			-e COMET_API_KEY=$(COMET_API_KEY) \
+			$(IMAGE_NAME) bash tests/run_opv_3d.sh $$id; \
+	done
 	@echo "Test OPV-3D success"
 
 test: test_opv test_opv_3d

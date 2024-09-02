@@ -67,6 +67,29 @@ export COMET_API_KEY=<YOUR-API-KEY>
         ```
 
 ### QM9 dataset
+* To train and evaluate the *Molecular Hypergraph Neural Network*:
+    * On a specific task:
+        ```bash
+        # 0-alpha, 1-gap, 2-homo, 3-lumo, 4-mu, 5-cv
+        make train_qm9 $TASK
+        ```
+
+    * On all tasks:
+        ```bash
+        make train_qm9_all
+        ```
+
+* To train and evaluate the *Equivariant Molecular Hypergraph Neural Network*:
+    * On a specific task:
+        ```bash
+        # 0-alpha, 1-gap, 2-homo, 3-lumo, 4-mu, 5-cv
+        make train_qm9_3d $TASK
+        ```
+
+    * On all tasks:
+        ```bash
+        make train_qm9_3d_all
+        ```
 
 ## Results
 

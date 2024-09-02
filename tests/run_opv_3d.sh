@@ -6,7 +6,7 @@ set -euxo pipefail
 TASK=$1
 
 python -u train_opv.py \
-    --method equihnns \
+    --method equihnnm \
     --data opv_hg_3d \
     --use_ring \
     --runs 1 \
@@ -25,6 +25,6 @@ python -u train_opv.py \
     --wd 0 \
     --clip_gnorm 5.0 \
     --dropout 0.0 \
-    --batch_size 768 \
+    --batch_size 1 \
     --epochs 400 \
     --debug \

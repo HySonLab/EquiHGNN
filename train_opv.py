@@ -194,14 +194,8 @@ if __name__ == '__main__':
         ]
 
     summary_callback = pl.callbacks.ModelSummary(max_depth=8)
-    early_stop_callback = pl.callbacks.EarlyStopping(
-        monitor='val_mae_mean',
-        patience=5,
-        verbose=True,
-        mode='min',  
-        )
     
-    callbacks = [summary_callback, early_stop_callback]
+    callbacks = [summary_callback]
 
     for run in range(args.runs):
         # Set global seed for this run
@@ -226,7 +220,16 @@ if __name__ == '__main__':
         trainer = pl.Trainer(**trainer_args)
 
         trainer.fit(model, train_loader, valid_loader)
-        trainer.test(model, test_loader)
+
+        test_args = {
+            "model": model,
+            "dataloaders": test_loader,
+        }
+
+        if not args.debug:
+            test_args["ckpt_path"] = "best"
+
+        trainer.test(**test_args)
 
     print('Task end time:')
     print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))

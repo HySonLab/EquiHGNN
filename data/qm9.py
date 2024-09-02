@@ -4,9 +4,7 @@ import pandas as pd
 from tqdm import tqdm
 import torch
 from torch_geometric.data import (
-    Data,
     InMemoryDataset,
-    # download_url,
     extract_zip,
 )
 
@@ -14,7 +12,7 @@ import torch.hub
 
 from rdkit import Chem
 
-from data.utils import smi2hgraph, edge_order, HData
+from data.utils import edge_order, HData, mol2hgraph
 from common.registry import registry
 
 def download_url(url, output_path):
@@ -34,34 +32,30 @@ class QM9Base(InMemoryDataset):
     )
     raw_url2 = "https://ndownloader.figshare.com/files/3195404"
     
-    targets = [
-        "gap",
-        "homo",
-        "lumo",
-        # "mu",
-        # "alpha",
-        # "r2",
-        # "zpve",
-        # "U0",
-        # "U",
-        # "H",
-        # "G",
-        # "Cv",
-        # "U0_atom",
-        # "U_atom",
-        # "H_atom",
-        # "G_atom",
-        # "A",
-        # "B",
-        # "C",
-    ]
+    targets = ["alpha","gap","homo","lumo","mu","cv"]
+    # "r2",
+    # "zpve",
+    # "U0",
+    # "U",
+    # "H",
+    # "G",
+    # "U0_atom",
+    # "U_atom",
+    # "H_atom",
+    # "G_atom",
+    # "A",
+    # "B",
+    # "C",
 
     def __init__(self, root, force_reload=False,
-                 transform=None, pre_transform=None, pre_filter=None):
+                 transform=None, pre_transform=None, pre_filter=None, use_ring:bool=False):
+        self.use_ring:bool = use_ring
         super().__init__(
             root, transform, pre_transform, pre_filter, force_reload=force_reload)
 
         self.data, self.slices = torch.load(self.processed_paths[0])
+        if self.use_ring:
+            print("Use rings as the hyperedge also")
 
     def mean(self, target):
         y = torch.cat([self.get(i).y for i in range(len(self))], dim=0)
@@ -95,15 +89,19 @@ class QM9HGraph3D(QM9Base):
     
     @property
     def processed_file_names(self) -> str:
-        return ["3dhg_data.pt"] 
+        suffix = "_use_ring" if self.use_ring else "_no_ring"
+        return [f"3dhg_data_{suffix}.pt"] 
     
     def compute_3dhgraph(self, sdf_path, csv_path):
         suppl = Chem.SDMolSupplier(sdf_path, removeHs=False, sanitize=False)
         df = pd.read_csv(csv_path)
-        target = df[self.target].values
+        target = df[self.targets].values.tolist()
 
         data_list = []
         for i, mol in enumerate(tqdm(suppl)):
+            if mol is None:
+                continue
+
             conf = mol.GetConformer()
             pos = conf.GetPositions()
             pos = torch.tensor(pos, dtype=torch.float)
@@ -111,8 +109,12 @@ class QM9HGraph3D(QM9Base):
             z = torch.tensor(atomic_number, dtype=torch.long)
             y = torch.tensor([target[i]], dtype=torch.float)
                 
-            smi = Chem.MolToSmiles(mol, isomericSmiles=True)
-            atom_fvs, n_idx, e_idx, bond_fvs = smi2hgraph(mol)
+            try:
+                atom_fvs, n_idx, e_idx, bond_fvs = mol2hgraph(mol, use_ring=self.use_ring)
+            except Exception as e:
+                print(e)
+                continue
+
             x = torch.tensor(atom_fvs, dtype=torch.long)
             edge_index0 = torch.tensor(n_idx, dtype=torch.long)
             edge_index1 = torch.tensor(e_idx, dtype=torch.long)
@@ -120,9 +122,8 @@ class QM9HGraph3D(QM9Base):
             n_e = len(edge_index1.unique())
             e_order = torch.tensor(edge_order(e_idx), dtype=torch.long)
             
-            data = Data(x=x, z=z, pos=pos, y=y, idx=i,
+            data = HData(x=x, z=z, pos=pos, y=y, idx=i,
                         n_e=n_e, 
-                        # smi=smi,
                         edge_index0=edge_index0,
                         edge_index1=edge_index1,
                         edge_attr=edge_attr,
@@ -150,26 +151,22 @@ class QM9HGraph(QM9Base):
 
     @property
     def processed_file_names(self):
-        return ['hg_data.pt']
+        suffix = "_use_ring" if self.use_ring else "_no_ring"
+        return [f"hg_data_{suffix}.pt"] 
 
     def compute_hgraph(self, sdf_path, csv_path):
         df = pd.read_csv(csv_path)
         suppl = Chem.SDMolSupplier(sdf_path, removeHs=False, sanitize=False)
-
-        target = df[self.target]
-        target = torch.tensor(target.values, dtype=torch.float)
+        target = df[self.targets].values.tolist()
 
         data_list = []
-        # for i, smi in enumerate(tqdm(smiles)):
         for i, mol in enumerate(tqdm(suppl)):
-            # smi = Chem.MolToSmiles(mol, isomericSmiles=True)
-            # atom_fvs, n_idx, e_idx, bond_fvs = smi2hgraph(smi)
-            atom_fvs, n_idx, e_idx, bond_fvs = smi2hgraph(mol)
+            atom_fvs, n_idx, e_idx, bond_fvs = mol2hgraph(mol)
             x = torch.tensor(atom_fvs, dtype=torch.long)
             edge_index0 = torch.tensor(n_idx, dtype=torch.long)
             edge_index1 = torch.tensor(e_idx, dtype=torch.long)
             edge_attr = torch.tensor(bond_fvs, dtype=torch.long)
-            y = target[i].unsqueeze(0)
+            y = torch.tensor([target[i]], dtype=torch.float)
             n_e = len(edge_index1.unique())
             e_order = torch.tensor(edge_order(e_idx), dtype=torch.long)
 

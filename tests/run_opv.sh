@@ -5,7 +5,7 @@ set -euxo pipefail
 # polymer: 4-homo, 5-lumo, 6-gap, 7-optical_lumo
 TASK=$1
 
-python -u train_opv.py \
+python -u main.py \
     --method mhnns \
     --data opv_hg \
     --use_ring \
@@ -28,3 +28,4 @@ python -u train_opv.py \
     --batch_size 1 \
     --epochs 400 \
     --debug
+    

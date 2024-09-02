@@ -6,8 +6,8 @@ TASK=$1
 
 # Use default settings
 python -u main.py \
-    --method mhnnm \
-    --data qm9_hg \
+    --method equihnnm \
+    --data qm9_hg_3d \
     --use_ring \
     --runs 1 \
     --target $TASK \

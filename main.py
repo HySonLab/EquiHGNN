@@ -3,12 +3,10 @@ import time
 import argparse
 import torch
 import torch.nn as nn
-import torch_geometric.transforms as T
 from torch_geometric.loader import DataLoader
 
 from models import *
-from data import OneTarget
-from utils import create_model, create_data
+from utils import create_model, create_train_val_test_set_and_normalize
 
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import CSVLogger, CometLogger
@@ -151,28 +149,12 @@ if __name__ == '__main__':
     device = torch.device(device)
 
     # Load dataset and normalize targets to mean = 0 and std = 1
-    if args.target in [0, 1, 2, 3]:
-        args.polymer = False
-    elif args.target in [4, 5, 6, 7]:
-        args.polymer = True
-    else:
-        raise Exception('Invalid target value!')
-
-    transform = T.Compose([OneTarget(target=args.target)])
-
-    data_cls = create_data(data_name=args.data)
-    
-    train_dataset = data_cls(root=args.data_dir, polymer=args.polymer, partition='train', transform=transform, use_ring=args.use_ring)
-    valid_dataset = data_cls(root=args.data_dir, polymer=args.polymer, partition='valid', transform=transform, use_ring=args.use_ring)
-    test_dataset = data_cls(root=args.data_dir, polymer=args.polymer, partition='test', transform=transform, use_ring=args.use_ring)
-
-    # Normalize targets to mean = 0 and std = 1.
-    mean = train_dataset._data.y.mean(dim=0, keepdim=True)
-    std = train_dataset._data.y.std(dim=0, keepdim=True)
-    train_dataset._data.y = (train_dataset._data.y - mean) / std
-    valid_dataset._data.y = (valid_dataset._data.y - mean) / std
-    test_dataset._data.y = (test_dataset._data.y - mean) / std
-    mean, std = mean[:, args.target].item(), std[:, args.target].item()
+    train_dataset, valid_dataset, test_dataset, std = create_train_val_test_set_and_normalize(
+        target=args.target,
+        data_name=args.data,
+        data_dir=args.data_dir,
+        use_ring=args.use_ring
+    )
 
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
     valid_loader = DataLoader(valid_dataset, batch_size=args.batch_size, shuffle=False)
@@ -193,10 +175,6 @@ if __name__ == '__main__':
         csv_logger
         ]
 
-    summary_callback = pl.callbacks.ModelSummary(max_depth=8)
-    
-    callbacks = [summary_callback]
-
     for run in range(args.runs):
         # Set global seed for this run
         seed = args.seed + run
@@ -210,7 +188,6 @@ if __name__ == '__main__':
         trainer_args = {
             "max_epochs": args.epochs,
             "logger": loggers,
-            "callbacks": callbacks,
             "devices": 1 if torch.cuda.is_available() else 0,
         }
 

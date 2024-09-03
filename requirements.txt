@@ -5,3 +5,4 @@ rdkit==2024.3.3
 torch_geometric==2.5.3
 e3nn==0.5.1
 comet-ml==3.45.0
+einops==0.8.0

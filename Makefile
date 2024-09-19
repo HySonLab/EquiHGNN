@@ -36,9 +36,9 @@ clean:
 train_opv:
 	@docker run \
 		--gpus all \
-		-v $(shell pwd)/datasets:/equihgnn/datasets \
-		-v $(shell pwd)/logs:/equihgnn/logs \
-		-v $(shell pwd)/scripts:/equihgnn/scripts \
+		-v $(shell pwd)/datasets:/module/datasets \
+		-v $(shell pwd)/logs:/module/logs \
+		-v $(shell pwd)/scripts:/module/scripts \
 		-e COMET_API_KEY=$(COMET_API_KEY) \
 		$(IMAGE_NAME) bash scripts/run_opv.sh $(TASK_ID)
 
@@ -49,9 +49,9 @@ train_opv_all:
 		echo "Running task with TASK_ID=$$id"; \
 		docker run \
 			--gpus all \
-			-v $(shell pwd)/datasets:/equihgnn/datasets \
-			-v $(shell pwd)/logs:/equihgnn/logs \
-			-v $(shell pwd)/scripts:/equihgnn/scripts \
+			-v $(shell pwd)/datasets:/module/datasets \
+			-v $(shell pwd)/logs:/module/logs \
+			-v $(shell pwd)/scripts:/module/scripts \
 			-e COMET_API_KEY=$(COMET_API_KEY) \
 			$(IMAGE_NAME) bash scripts/run_opv.sh $$id; \
 	done
@@ -62,9 +62,9 @@ train_opv_all:
 train_opv3d:
 	@docker run \
 		--gpus all \
-		-v $(shell pwd)/datasets:/equihgnn/datasets \
-		-v $(shell pwd)/logs:/equihgnn/logs \
-		-v $(shell pwd)/scripts:/equihgnn/scripts \
+		-v $(shell pwd)/datasets:/module/datasets \
+		-v $(shell pwd)/logs:/module/logs \
+		-v $(shell pwd)/scripts:/module/scripts \
 		-e COMET_API_KEY=$(COMET_API_KEY) \
 		$(IMAGE_NAME) bash scripts/run_opv_3d.sh $(TASK_ID)
 
@@ -75,9 +75,9 @@ train_opv3d_all:
 		echo "Running task with TASK_ID=$$id"; \
 		docker run \
 			--gpus all \
-			-v $(shell pwd)/datasets:/equihgnn/datasets \
-			-v $(shell pwd)/logs:/equihgnn/logs \
-			-v $(shell pwd)/scripts:/equihgnn/scripts \
+			-v $(shell pwd)/datasets:/module/datasets \
+			-v $(shell pwd)/logs:/module/logs \
+			-v $(shell pwd)/scripts:/module/scripts \
 			-e COMET_API_KEY=$(COMET_API_KEY) \
 			$(IMAGE_NAME) bash scripts/run_opv_3d.sh $$id; \
 	done
@@ -88,9 +88,9 @@ train_opv3d_all:
 train_qm9:
 	@docker run \
 		--gpus all \
-		-v $(shell pwd)/datasets:/equihgnn/datasets \
-		-v $(shell pwd)/logs:/equihgnn/logs \
-		-v $(shell pwd)/scripts:/equihgnn/scripts \
+		-v $(shell pwd)/datasets:/module/datasets \
+		-v $(shell pwd)/logs:/module/logs \
+		-v $(shell pwd)/scripts:/module/scripts \
 		-e COMET_API_KEY=$(COMET_API_KEY) \
 		$(IMAGE_NAME) bash scripts/run_qm9.sh $(TASK_ID)
 
@@ -101,9 +101,9 @@ train_qm9_all:
 		echo "Running task with TASK_ID=$$id"; \
 		docker run \
 			--gpus all \
-			-v $(shell pwd)/datasets:/equihgnn/datasets \
-			-v $(shell pwd)/logs:/equihgnn/logs \
-			-v $(shell pwd)/scripts:/equihgnn/scripts \
+			-v $(shell pwd)/datasets:/module/datasets \
+			-v $(shell pwd)/logs:/module/logs \
+			-v $(shell pwd)/scripts:/module/scripts \
 			-e COMET_API_KEY=$(COMET_API_KEY) \
 			$(IMAGE_NAME) bash scripts/run_qm9.sh $$id; \
 	done
@@ -114,9 +114,9 @@ train_qm9_all:
 train_qm9_3d:
 	@docker run \
 		--gpus all \
-		-v $(shell pwd)/datasets:/equihgnn/datasets \
-		-v $(shell pwd)/logs:/equihgnn/logs \
-		-v $(shell pwd)/scripts:/equihgnn/scripts \
+		-v $(shell pwd)/datasets:/module/datasets \
+		-v $(shell pwd)/logs:/module/logs \
+		-v $(shell pwd)/scripts:/module/scripts \
 		-e COMET_API_KEY=$(COMET_API_KEY) \
 		$(IMAGE_NAME) bash scripts/run_qm9_3d.sh $(TASK_ID)
 
@@ -127,9 +127,9 @@ train_qm9_3d_all:
 		echo "Running task with TASK_ID=$$id"; \
 		docker run \
 			--gpus all \
-			-v $(shell pwd)/datasets:/equihgnn/datasets \
-			-v $(shell pwd)/logs:/equihgnn/logs \
-			-v $(shell pwd)/scripts:/equihgnn/scripts \
+			-v $(shell pwd)/datasets:/module/datasets \
+			-v $(shell pwd)/logs:/module/logs \
+			-v $(shell pwd)/scripts:/module/scripts \
 			-e COMET_API_KEY=$(COMET_API_KEY) \
 			$(IMAGE_NAME) bash scripts/run_qm9_3d.sh $$id; \
 	done
@@ -143,10 +143,10 @@ test_opv:
 		echo "Running task with TASK_ID=$$id"; \
 		docker run \
 			--gpus all \
-			-v $(shell pwd)/datasets:/equihgnn/datasets \
-			-v $(shell pwd)/logs:/equihgnn/logs \
-			-v $(shell pwd)/scripts:/equihgnn/scripts \
-			-v $(shell pwd)/tests:/equihgnn/tests \
+			-v $(shell pwd)/datasets:/module/datasets \
+			-v $(shell pwd)/logs:/module/logs \
+			-v $(shell pwd)/scripts:/module/scripts \
+			-v $(shell pwd)/tests:/module/tests \
 			-e COMET_API_KEY=$(COMET_API_KEY) \
 			$(IMAGE_NAME) bash tests/run_opv.sh $$id; \
 	done
@@ -159,10 +159,10 @@ test_opv_3d:
 		echo "Running task with TASK_ID=$$id"; \
 		docker run \
 			--gpus all \
-			-v $(shell pwd)/datasets:/equihgnn/datasets \
-			-v $(shell pwd)/logs:/equihgnn/logs \
-			-v $(shell pwd)/scripts:/equihgnn/scripts \
-			-v $(shell pwd)/tests:/equihgnn/tests \
+			-v $(shell pwd)/datasets:/module/datasets \
+			-v $(shell pwd)/logs:/module/logs \
+			-v $(shell pwd)/scripts:/module/scripts \
+			-v $(shell pwd)/tests:/module/tests \
 			-e COMET_API_KEY=$(COMET_API_KEY) \
 			$(IMAGE_NAME) bash tests/run_opv_3d.sh $$id; \
 	done
@@ -176,10 +176,10 @@ test_qm9:
 		echo "Running task with TASK_ID=$$id"; \
 		docker run \
 			--gpus all \
-			-v $(shell pwd)/datasets:/equihgnn/datasets \
-			-v $(shell pwd)/logs:/equihgnn/logs \
-			-v $(shell pwd)/scripts:/equihgnn/scripts \
-			-v $(shell pwd)/tests:/equihgnn/tests \
+			-v $(shell pwd)/datasets:/module/datasets \
+			-v $(shell pwd)/logs:/module/logs \
+			-v $(shell pwd)/scripts:/module/scripts \
+			-v $(shell pwd)/tests:/module/tests \
 			-e COMET_API_KEY=$(COMET_API_KEY) \
 			$(IMAGE_NAME) bash tests/run_qm9.sh $$id; \
 	done
@@ -192,10 +192,10 @@ test_qm9_3d:
 		echo "Running task with TASK_ID=$$id"; \
 		docker run \
 			--gpus all \
-			-v $(shell pwd)/datasets:/equihgnn/datasets \
-			-v $(shell pwd)/logs:/equihgnn/logs \
-			-v $(shell pwd)/scripts:/equihgnn/scripts \
-			-v $(shell pwd)/tests:/equihgnn/tests \
+			-v $(shell pwd)/datasets:/module/datasets \
+			-v $(shell pwd)/logs:/module/logs \
+			-v $(shell pwd)/scripts:/module/scripts \
+			-v $(shell pwd)/tests:/module/tests \
 			-e COMET_API_KEY=$(COMET_API_KEY) \
 			$(IMAGE_NAME) bash tests/run_qm9_3d.sh $$id; \
 	done

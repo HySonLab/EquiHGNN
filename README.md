@@ -23,26 +23,26 @@ Make sure [conda](https://docs.anaconda.com/miniconda/miniconda-install/) has be
 
 1. Create a new conda environment and activate it:
 
-   ```shell
+   ```bash
    conda create --name equihgnn python=3.10
    conda activate equihgnn
    ```
 
 2. Install specific `torch` and `torch-cluster` version. We use torch `2.2.1` with CUDA `12.1` support:
 
-   ```shell
+   ```bash
    pip install torch==2.2.1 torchvision==0.17.1 --index-url https://download.pytorch.org/whl/cu121
    pip install torch-cluster -f https://data.pyg.org/whl/torch-2.2.1+cu121.html
    ```
 
 3. Install other dependencies:
 
-   ```shell
+   ```bash
    pip install -r requirements.txt
    ```
 
 4. Install the project as an editable module:
-   ```shell
+   ```bash
    pip install -e .
    ```
 
@@ -52,13 +52,13 @@ Please ensure you run the code formatter before committing or opening a pull req
 
 1. Install pre-commit
 
-   ```shell
+   ```bash
    pip install pre-commit
    ```
 
 2. Install Git Hook
-   ```shell
-   pre-commit install`
+   ```bash
+   pre-commit install
    ```
 
 ## Run
@@ -68,10 +68,16 @@ Visit the [./scripts](./scripts) directory to customize parameters such as: mode
 ## Run on Docker
 
 To build the Docker image:
-`shell make build `
+
+```bash
+make build
+```
 
 To clean the unused containers:
-`shell make clean `
+
+```bash
+make clean
+```
 
 ## Train
 

@@ -9,12 +9,9 @@ COPY ./requirements.txt ./
 RUN pip install -r requirements.txt
 RUN pip install torch-scatter -f https://data.pyg.org/whl/torch-2.2.1+cu121.html
 
-COPY ./data /equihgnn/data
-COPY ./models /equihgnn/models
+COPY ./equihgnn /equihgnn
 COPY ./scripts /equihgnn/scripts
 COPY ./tests /equihgnn/tests
-COPY ./utils /equihgnn/utils
-COPY ./common /equihgnn/common
 COPY ./main.py /equihgnn/main.py
 
 COPY pyproject.toml .

@@ -1,19 +1,16 @@
 import os
 import os.path as osp
+
 import pandas as pd
-from tqdm import tqdm
 import torch
-from torch_geometric.data import (
-    InMemoryDataset,
-    extract_zip,
-)
-
 import torch.hub
-
 from rdkit import Chem
+from torch_geometric.data import InMemoryDataset, extract_zip
+from tqdm import tqdm
 
-from data.utils import edge_order, HData, mol2hgraph
-from common.registry import registry
+from equihgnn.common.registry import registry
+from equihgnn.data.utils import HData, edge_order, mol2hgraph
+
 
 def download_url(url, output_path):
     if not os.path.exists(output_path):
@@ -22,17 +19,17 @@ def download_url(url, output_path):
     else:
         print(f"File already exists at {output_path}, skipping download.")
 
+
 class QM9Base(InMemoryDataset):
-    r""" 
-    """
-    
+    r""" """
+
     raw_url = (
         "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/"
         "molnet_publish/qm9.zip"
     )
     raw_url2 = "https://ndownloader.figshare.com/files/3195404"
-    
-    targets = ["alpha","gap","homo","lumo","mu","cv"]
+
+    targets = ["alpha", "gap", "homo", "lumo", "mu", "cv"]
     # "r2",
     # "zpve",
     # "U0",
@@ -47,11 +44,19 @@ class QM9Base(InMemoryDataset):
     # "B",
     # "C",
 
-    def __init__(self, root, force_reload=False,
-                 transform=None, pre_transform=None, pre_filter=None, use_ring:bool=False):
-        self.use_ring:bool = use_ring
+    def __init__(
+        self,
+        root,
+        force_reload=False,
+        transform=None,
+        pre_transform=None,
+        pre_filter=None,
+        use_ring: bool = False,
+    ):
+        self.use_ring: bool = use_ring
         super().__init__(
-            root, transform, pre_transform, pre_filter, force_reload=force_reload)
+            root, transform, pre_transform, pre_filter, force_reload=force_reload
+        )
 
         self.data, self.slices = torch.load(self.processed_paths[0])
         if self.use_ring:
@@ -70,7 +75,7 @@ class QM9Base(InMemoryDataset):
 
     def download(self) -> None:
 
-        file_path = osp.join(self.raw_dir, 'qm9.zip')
+        file_path = osp.join(self.raw_dir, "qm9.zip")
         download_url(self.raw_url, file_path)
         extract_zip(file_path, self.raw_dir)
         os.unlink(file_path)
@@ -86,12 +91,12 @@ class QM9Base(InMemoryDataset):
 class QM9HGraph3D(QM9Base):
 
     __doc__ = QM9Base.__doc__
-    
+
     @property
-    def processed_file_names(self) -> str:
+    def processed_file_names(self):
         suffix = "_use_ring" if self.use_ring else "_no_ring"
-        return [f"3dhg_data_{suffix}.pt"] 
-    
+        return [f"3dhg_data_{suffix}.pt"]
+
     def compute_3dhgraph(self, sdf_path, csv_path):
         suppl = Chem.SDMolSupplier(sdf_path, removeHs=False, sanitize=False)
         df = pd.read_csv(csv_path)
@@ -108,9 +113,11 @@ class QM9HGraph3D(QM9Base):
             atomic_number = [atom.GetAtomicNum() for atom in mol.GetAtoms()]
             z = torch.tensor(atomic_number, dtype=torch.long)
             y = torch.tensor([target[i]], dtype=torch.float)
-                
+
             try:
-                atom_fvs, n_idx, e_idx, bond_fvs = mol2hgraph(mol, use_ring=self.use_ring)
+                atom_fvs, n_idx, e_idx, bond_fvs = mol2hgraph(
+                    mol, use_ring=self.use_ring
+                )
             except Exception as e:
                 print(e)
                 continue
@@ -121,21 +128,27 @@ class QM9HGraph3D(QM9Base):
             edge_attr = torch.tensor(bond_fvs, dtype=torch.long)
             n_e = len(edge_index1.unique())
             e_order = torch.tensor(edge_order(e_idx), dtype=torch.long)
-            
-            data = HData(x=x, z=z, pos=pos, y=y, idx=i,
-                        n_e=n_e, 
-                        edge_index0=edge_index0,
-                        edge_index1=edge_index1,
-                        edge_attr=edge_attr,
-                        e_order=e_order)
+
+            data = HData(
+                x=x,
+                z=z,
+                pos=pos,
+                y=y,
+                idx=i,
+                n_e=n_e,
+                edge_index0=edge_index0,
+                edge_index1=edge_index1,
+                edge_attr=edge_attr,
+                e_order=e_order,
+            )
 
             if self.pre_filter is not None and not self.pre_filter(data):
                 continue
             if self.pre_transform is not None:
                 data = self.pre_transform(data)
-            
+
             data_list.append(data)
-        
+
         return data_list
 
     def process(self):
@@ -152,7 +165,7 @@ class QM9HGraph(QM9Base):
     @property
     def processed_file_names(self):
         suffix = "_use_ring" if self.use_ring else "_no_ring"
-        return [f"hg_data_{suffix}.pt"] 
+        return [f"hg_data_{suffix}.pt"]
 
     def compute_hgraph(self, sdf_path, csv_path):
         df = pd.read_csv(csv_path)
@@ -170,24 +183,26 @@ class QM9HGraph(QM9Base):
             n_e = len(edge_index1.unique())
             e_order = torch.tensor(edge_order(e_idx), dtype=torch.long)
 
-            data = HData(x=x, y=y, n_e=n_e, 
-                        #  smi=smi,
-                         edge_index0=edge_index0,
-                         edge_index1=edge_index1,
-                         edge_attr=edge_attr,
-                         e_order=e_order)
+            data = HData(
+                x=x,
+                y=y,
+                n_e=n_e,
+                #  smi=smi,
+                edge_index0=edge_index0,
+                edge_index1=edge_index1,
+                edge_attr=edge_attr,
+                e_order=e_order,
+            )
 
             if self.pre_filter is not None and not self.pre_filter(data):
                 continue
             if self.pre_transform is not None:
                 data = self.pre_transform(data)
             data_list.append(data)
-        
+
         return data_list
 
     def process(self):
 
         data_list = self.compute_hgraph(self.raw_paths[0], self.raw_paths[1])
         torch.save(self.collate(data_list), self.processed_paths[0])
-
-

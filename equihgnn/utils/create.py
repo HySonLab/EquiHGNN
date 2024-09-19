@@ -1,4 +1,5 @@
 from equihgnn.common.registry import registry
+from equihgnn.models import *  # noqa: F403, F401
 
 
 def create_model(model_name: str):

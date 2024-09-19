@@ -4,14 +4,14 @@ from equihgnn.models.equihnn_egnn import EGNNEquiHNN, EGNNEquiHNNM, EGNNEquiHNNS
 from equihgnn.models.mhnn import MHNN, MHNNM, MHNNS
 
 __all__ = [
-    GNN_2D,
-    EquiHNN,
-    EquiHNNM,
-    EquiHNNS,
-    EGNNEquiHNN,
-    EGNNEquiHNNM,
-    EGNNEquiHNNS,
-    MHNN,
-    MHNNM,
-    MHNNS,
+    "GNN_2D",
+    "EquiHNN",
+    "EquiHNNM",
+    "EquiHNNS",
+    "EGNNEquiHNN",
+    "EGNNEquiHNNM",
+    "EGNNEquiHNNS",
+    "MHNN",
+    "MHNNM",
+    "MHNNS",
 ]

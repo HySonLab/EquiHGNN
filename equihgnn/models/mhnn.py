@@ -1,17 +1,17 @@
 import torch
 import torch.nn as nn
-from torch_geometric.nn import global_mean_pool, global_add_pool
 from ogb.graphproppred.mol_encoder import AtomEncoder
+from torch_geometric.nn import global_add_pool
 
-from models.conv import MHNNConv, MHNNSConv
-from models.mlp import MLP
-from common.registry import registry
+from equihgnn.common.registry import registry
+from equihgnn.models.conv import MHNNConv, MHNNSConv
+from equihgnn.models.mlp import MLP
 
 
 @registry.register_model("mhnn")
 class MHNN(nn.Module):
     def __init__(self, num_target, args):
-        """ Molecular Hypergraph Neural Network (MHNN)
+        """Molecular Hypergraph Neural Network (MHNN)
         (Shared parameters between all message passing layers)
 
         Args:
@@ -20,7 +20,7 @@ class MHNN(nn.Module):
         """
         super().__init__()
 
-        act = {'Id': nn.Identity(), 'relu': nn.ReLU(), 'prelu':nn.PReLU()}
+        act = {"Id": nn.Identity(), "relu": nn.ReLU(), "prelu": nn.PReLU()}
         self.act = act[args.activation]
         self.dropout = nn.Dropout(args.dropout)
         self.mlp1_layers = args.MLP1_num_layers
@@ -32,17 +32,26 @@ class MHNN(nn.Module):
         self.atom_encoder = AtomEncoder(emb_dim=args.MLP_hidden)
         self.bond_encoder = nn.Embedding(6, args.MLP_hidden)
 
-        self.conv = MHNNConv(args.MLP_hidden, mlp1_layers=self.mlp1_layers, mlp2_layers=self.mlp2_layers,
-            mlp3_layers=self.mlp3_layers, mlp4_layers=self.mlp4_layers, aggr=args.aggregate,
-            dropout=args.dropout, normalization=args.normalization)
+        self.conv = MHNNConv(
+            args.MLP_hidden,
+            mlp1_layers=self.mlp1_layers,
+            mlp2_layers=self.mlp2_layers,
+            mlp3_layers=self.mlp3_layers,
+            mlp4_layers=self.mlp4_layers,
+            aggr=args.aggregate,
+            dropout=args.dropout,
+            normalization=args.normalization,
+        )
 
-        self.mlp_out = MLP(in_channels=args.MLP_hidden*2,
-            hidden_channels=args.output_hidden*2,
+        self.mlp_out = MLP(
+            in_channels=args.MLP_hidden * 2,
+            hidden_channels=args.output_hidden * 2,
             out_channels=num_target,
             num_layers=args.output_num_layers,
             dropout=args.dropout,
             Normalization=args.normalization,
-            InputNorm=False)
+            InputNorm=False,
+        )
 
     def forward(self, data):
 
@@ -59,7 +68,7 @@ class MHNN(nn.Module):
         for i in range(self.nlayer):
             x, e = self.conv(x, e, V, E)
             if i == self.nlayer - 1:
-                #remove relu for the last layer
+                # remove relu for the last layer
                 x = self.dropout(x)
                 e = self.dropout(e)
             else:
@@ -74,8 +83,8 @@ class MHNN(nn.Module):
 
 @registry.register_model("mhnns")
 class MHNNS(nn.Module):
-    def __init__(self,  num_target, args):
-        """ Molecular Hypergraph Neural Network (MHNN) simple version,
+    def __init__(self, num_target, args):
+        """Molecular Hypergraph Neural Network (MHNN) simple version,
         which has similar performance with MHNN but smaller and faster.
         (Shared parameters between all message passing layers)
 
@@ -85,7 +94,7 @@ class MHNNS(nn.Module):
         """
         super().__init__()
 
-        act = {'Id': nn.Identity(), 'relu': nn.ReLU(), 'prelu':nn.PReLU()}
+        act = {"Id": nn.Identity(), "relu": nn.ReLU(), "prelu": nn.PReLU()}
         self.act = act[args.activation]
         self.dropout = nn.Dropout(args.dropout)
         self.mlp1_layers = args.MLP1_num_layers
@@ -94,18 +103,25 @@ class MHNNS(nn.Module):
         self.nlayer = args.All_num_layers
 
         self.atom_encoder = AtomEncoder(emb_dim=args.MLP_hidden)
-        self.conv = MHNNSConv(args.MLP_hidden, mlp1_layers=self.mlp1_layers,
-            mlp2_layers=self.mlp2_layers, mlp3_layers=self.mlp3_layers,
-            aggr=args.aggregate, dropout=args.dropout,
-            normalization=args.normalization)
+        self.conv = MHNNSConv(
+            args.MLP_hidden,
+            mlp1_layers=self.mlp1_layers,
+            mlp2_layers=self.mlp2_layers,
+            mlp3_layers=self.mlp3_layers,
+            aggr=args.aggregate,
+            dropout=args.dropout,
+            normalization=args.normalization,
+        )
 
-        self.mlp_out = MLP(in_channels=args.MLP_hidden,
+        self.mlp_out = MLP(
+            in_channels=args.MLP_hidden,
             hidden_channels=args.output_hidden,
             out_channels=num_target,
             num_layers=args.output_num_layers,
             dropout=args.dropout,
             Normalization=args.normalization,
-            InputNorm=False)
+            InputNorm=False,
+        )
 
     def reset_parameters(self):
         self.conv.reset_parameters()
@@ -128,7 +144,7 @@ class MHNNS(nn.Module):
 @registry.register_model("mhnnm")
 class MHNNM(nn.Module):
     def __init__(self, num_target, args):
-        """ Molecular Hypergraph Neural Network (MHNN)
+        """Molecular Hypergraph Neural Network (MHNN)
         (Multiple message passing layers, no parameters shared between layers)
 
         Args:
@@ -136,7 +152,7 @@ class MHNNM(nn.Module):
             args (NamedTuple): global args
         """
         super().__init__()
-        act = {'Id': nn.Identity(), 'relu': nn.ReLU(), 'prelu':nn.PReLU()}
+        act = {"Id": nn.Identity(), "relu": nn.ReLU(), "prelu": nn.PReLU()}
         self.act = act[args.activation]
         self.dropout = nn.Dropout(args.dropout)
         self.mlp1_layers = args.MLP1_num_layers
@@ -151,25 +167,29 @@ class MHNNM(nn.Module):
         self.layers = nn.ModuleList()
         self.batch_norms = nn.ModuleList()
         for _ in range(self.nlayer):
-            self.layers.append(MHNNConv(
-                args.MLP_hidden,
-                mlp1_layers=self.mlp1_layers,
-                mlp2_layers=self.mlp2_layers,
-                mlp3_layers=self.mlp3_layers,
-                mlp4_layers=self.mlp4_layers,
-                aggr=args.aggregate,
-                dropout=args.dropout,
-                normalization=args.normalization,
-            ))
+            self.layers.append(
+                MHNNConv(
+                    args.MLP_hidden,
+                    mlp1_layers=self.mlp1_layers,
+                    mlp2_layers=self.mlp2_layers,
+                    mlp3_layers=self.mlp3_layers,
+                    mlp4_layers=self.mlp4_layers,
+                    aggr=args.aggregate,
+                    dropout=args.dropout,
+                    normalization=args.normalization,
+                )
+            )
             self.batch_norms.append(nn.BatchNorm1d(args.MLP_hidden))
 
-        self.mlp_out = MLP(in_channels=args.MLP_hidden,
+        self.mlp_out = MLP(
+            in_channels=args.MLP_hidden,
             hidden_channels=args.output_hidden,
             out_channels=num_target,
             num_layers=args.output_num_layers,
             dropout=args.dropout,
             Normalization=args.normalization,
-            InputNorm=False)
+            InputNorm=False,
+        )
 
     def forward(self, data):
         V, E = data.edge_index0, data.edge_index1
@@ -186,7 +206,7 @@ class MHNNM(nn.Module):
             x = self.batch_norms[i](x)
 
             if i == self.nlayer - 1:
-                #remove relu for the last layer
+                # remove relu for the last layer
                 x = self.dropout(x)
                 e = self.dropout(e)
             else:

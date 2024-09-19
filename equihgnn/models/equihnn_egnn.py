@@ -1,17 +1,18 @@
 import torch
 import torch.nn as nn
-from torch_geometric.nn import global_mean_pool, global_add_pool
 from ogb.graphproppred.mol_encoder import AtomEncoder
+from torch_geometric.nn import global_add_pool
 
-from models.conv import MHNNConv, MHNNSConv
-from models.mlp import MLP
-from common.registry import registry
-from models.egnn import EGNN
+from equihgnn.common.registry import registry
+from equihgnn.models.conv import MHNNConv, MHNNSConv
+from equihgnn.models.egnn import EGNN
+from equihgnn.models.mlp import MLP
+
 
 @registry.register_model("egnn_equihnn")
 class EGNNEquiHNN(nn.Module):
     def __init__(self, num_target, args):
-        """ Equivariant Molecular Hypergraph Neural Network
+        """Equivariant Molecular Hypergraph Neural Network
         (Shared parameters between all message passing layers)
 
         This is built upon MHNNM, but it has been incorporated spherical harmonic
@@ -23,7 +24,7 @@ class EGNNEquiHNN(nn.Module):
         """
         super().__init__()
 
-        act = {'Id': nn.Identity(), 'relu': nn.ReLU(), 'prelu':nn.PReLU()}
+        act = {"Id": nn.Identity(), "relu": nn.ReLU(), "prelu": nn.PReLU()}
         self.act = act[args.activation]
         self.dropout = nn.Dropout(args.dropout)
         self.mlp1_layers = args.MLP1_num_layers
@@ -41,17 +42,26 @@ class EGNNEquiHNN(nn.Module):
         self.atom_encoder = AtomEncoder(emb_dim=args.MLP_hidden)
         self.bond_encoder = nn.Embedding(6, args.MLP_hidden)
 
-        self.conv = MHNNConv(args.MLP_hidden, mlp1_layers=self.mlp1_layers, mlp2_layers=self.mlp2_layers,
-            mlp3_layers=self.mlp3_layers, mlp4_layers=self.mlp4_layers, aggr=args.aggregate,
-            dropout=args.dropout, normalization=args.normalization)
+        self.conv = MHNNConv(
+            args.MLP_hidden,
+            mlp1_layers=self.mlp1_layers,
+            mlp2_layers=self.mlp2_layers,
+            mlp3_layers=self.mlp3_layers,
+            mlp4_layers=self.mlp4_layers,
+            aggr=args.aggregate,
+            dropout=args.dropout,
+            normalization=args.normalization,
+        )
 
-        self.mlp_out = MLP(in_channels=args.MLP_hidden*2,
-            hidden_channels=args.output_hidden*2,
+        self.mlp_out = MLP(
+            in_channels=args.MLP_hidden * 2,
+            hidden_channels=args.output_hidden * 2,
             out_channels=num_target,
             num_layers=args.output_num_layers,
             dropout=args.dropout,
             Normalization=args.normalization,
-            InputNorm=False)
+            InputNorm=False,
+        )
 
     def forward(self, data):
         V, E = data.edge_index0, data.edge_index1
@@ -70,7 +80,7 @@ class EGNNEquiHNN(nn.Module):
         for i in range(self.nlayer):
             x, e = self.conv(x, e, V, E)
             if i == self.nlayer - 1:
-                #remove relu for the last layer
+                # remove relu for the last layer
                 x = self.dropout(x)
                 e = self.dropout(e)
             else:
@@ -85,8 +95,8 @@ class EGNNEquiHNN(nn.Module):
 
 @registry.register_model("egnn_equihnns")
 class EGNNEquiHNNS(nn.Module):
-    def __init__(self,  num_target, args):
-        """ Equivariant Molecular Hypergraph Neural Network,
+    def __init__(self, num_target, args):
+        """Equivariant Molecular Hypergraph Neural Network,
         (Shared parameters between all message passing layers)
 
         This is built upon MHNN, but it has been incorporated spherical harmonic
@@ -98,7 +108,7 @@ class EGNNEquiHNNS(nn.Module):
         """
         super().__init__()
 
-        act = {'Id': nn.Identity(), 'relu': nn.ReLU(), 'prelu':nn.PReLU()}
+        act = {"Id": nn.Identity(), "relu": nn.ReLU(), "prelu": nn.PReLU()}
         self.act = act[args.activation]
         self.dropout = nn.Dropout(args.dropout)
         self.mlp1_layers = args.MLP1_num_layers
@@ -113,19 +123,26 @@ class EGNNEquiHNNS(nn.Module):
             norm_coors=True,
             norm_feats=True,
         )
-        
-        self.conv = MHNNSConv(args.MLP_hidden, mlp1_layers=self.mlp1_layers,
-            mlp2_layers=self.mlp2_layers, mlp3_layers=self.mlp3_layers,
-            aggr=args.aggregate, dropout=args.dropout,
-            normalization=args.normalization)
 
-        self.mlp_out = MLP(in_channels=args.MLP_hidden,
+        self.conv = MHNNSConv(
+            args.MLP_hidden,
+            mlp1_layers=self.mlp1_layers,
+            mlp2_layers=self.mlp2_layers,
+            mlp3_layers=self.mlp3_layers,
+            aggr=args.aggregate,
+            dropout=args.dropout,
+            normalization=args.normalization,
+        )
+
+        self.mlp_out = MLP(
+            in_channels=args.MLP_hidden,
             hidden_channels=args.output_hidden,
             out_channels=num_target,
             num_layers=args.output_num_layers,
             dropout=args.dropout,
             Normalization=args.normalization,
-            InputNorm=False)
+            InputNorm=False,
+        )
 
     def reset_parameters(self):
         self.conv.reset_parameters()
@@ -151,7 +168,7 @@ class EGNNEquiHNNS(nn.Module):
 @registry.register_model("egnn_equihnnm")
 class EGNNEquiHNNM(nn.Module):
     def __init__(self, num_target, args):
-        """ Equivariant Molecular Hypergraph Neural Network (MHNN)
+        """Equivariant Molecular Hypergraph Neural Network (MHNN)
         (Multiple message passing layers, no parameters shared between layers)
 
         This is built upon MHNNM, but it has been incorporated spherical harmonic
@@ -162,7 +179,7 @@ class EGNNEquiHNNM(nn.Module):
             args (NamedTuple): global args
         """
         super().__init__()
-        act = {'Id': nn.Identity(), 'relu': nn.ReLU(), 'prelu':nn.PReLU()}
+        act = {"Id": nn.Identity(), "relu": nn.ReLU(), "prelu": nn.PReLU()}
         self.act = act[args.activation]
         self.dropout = nn.Dropout(args.dropout)
         self.mlp1_layers = args.MLP1_num_layers
@@ -183,25 +200,29 @@ class EGNNEquiHNNM(nn.Module):
         self.layers = nn.ModuleList()
         self.batch_norms = nn.ModuleList()
         for _ in range(self.nlayer):
-            self.layers.append(MHNNConv(
-                args.MLP_hidden,
-                mlp1_layers=self.mlp1_layers,
-                mlp2_layers=self.mlp2_layers,
-                mlp3_layers=self.mlp3_layers,
-                mlp4_layers=self.mlp4_layers,
-                aggr=args.aggregate,
-                dropout=args.dropout,
-                normalization=args.normalization,
-            ))
+            self.layers.append(
+                MHNNConv(
+                    args.MLP_hidden,
+                    mlp1_layers=self.mlp1_layers,
+                    mlp2_layers=self.mlp2_layers,
+                    mlp3_layers=self.mlp3_layers,
+                    mlp4_layers=self.mlp4_layers,
+                    aggr=args.aggregate,
+                    dropout=args.dropout,
+                    normalization=args.normalization,
+                )
+            )
             self.batch_norms.append(nn.BatchNorm1d(args.MLP_hidden))
 
-        self.mlp_out = MLP(in_channels=args.MLP_hidden,
+        self.mlp_out = MLP(
+            in_channels=args.MLP_hidden,
             hidden_channels=args.output_hidden,
             out_channels=num_target,
             num_layers=args.output_num_layers,
             dropout=args.dropout,
             Normalization=args.normalization,
-            InputNorm=False)
+            InputNorm=False,
+        )
 
     def forward(self, data):
         V, E = data.edge_index0, data.edge_index1
@@ -214,7 +235,7 @@ class EGNNEquiHNNM(nn.Module):
 
         x, _ = self.egnn_layer(x.unsqueeze(0), data.pos.unsqueeze(0))
         x = x.squeeze(0)
-        
+
         e = self.bond_encoder(data.edge_attr.squeeze())
 
         for i, layer in enumerate(self.layers):
@@ -222,7 +243,7 @@ class EGNNEquiHNNM(nn.Module):
             x = self.batch_norms[i](x)
 
             if i == self.nlayer - 1:
-                #remove relu for the last layer
+                # remove relu for the last layer
                 x = self.dropout(x)
                 e = self.dropout(e)
             else:

@@ -1,14 +1,12 @@
 import torch_geometric.transforms as T
 from torch.utils.data import random_split
 
-from data import OneTarget, OPVBase, QM9Base
-from utils import create_data
+from equihgnn.data import OneTarget, OPVBase, QM9Base
+from equihgnn.utils.create import create_data
+
 
 def create_train_val_test_set_and_normalize(
-        target:int,
-        data_name:str,
-        data_dir:str,
-        use_ring:bool
+    target: int, data_name: str, data_dir: str, use_ring: bool
 ):
     transform = T.Compose([OneTarget(target=target)])
     data_cls = create_data(data_name=data_name)
@@ -27,7 +25,9 @@ def create_train_val_test_set_and_normalize(
         test_size = len(dataset) - train_size - valid_size
 
         # Split the dataset
-        train_dataset, valid_dataset, test_dataset = random_split(dataset, [train_size, valid_size, test_size])
+        train_dataset, valid_dataset, test_dataset = random_split(
+            dataset, [train_size, valid_size, test_size]
+        )
 
         # Normalize targets to mean = 0 and std = 1.
         mean = train_dataset.dataset.y.mean(dim=0, keepdim=True)
@@ -42,11 +42,29 @@ def create_train_val_test_set_and_normalize(
         elif target in [4, 5, 6, 7]:
             polymer = True
         else:
-            raise Exception('Invalid target value!')
+            raise Exception("Invalid target value!")
 
-        train_dataset = data_cls(root=data_dir, polymer=polymer, partition='train', transform=transform, use_ring=use_ring)
-        valid_dataset = data_cls(root=data_dir, polymer=polymer, partition='valid', transform=transform, use_ring=use_ring)
-        test_dataset = data_cls(root=data_dir, polymer=polymer, partition='test', transform=transform, use_ring=use_ring)
+        train_dataset = data_cls(
+            root=data_dir,
+            polymer=polymer,
+            partition="train",
+            transform=transform,
+            use_ring=use_ring,
+        )
+        valid_dataset = data_cls(
+            root=data_dir,
+            polymer=polymer,
+            partition="valid",
+            transform=transform,
+            use_ring=use_ring,
+        )
+        test_dataset = data_cls(
+            root=data_dir,
+            polymer=polymer,
+            partition="test",
+            transform=transform,
+            use_ring=use_ring,
+        )
 
         # Normalize targets to mean = 0 and std = 1.
         mean = train_dataset._data.y.mean(dim=0, keepdim=True)
@@ -56,5 +74,5 @@ def create_train_val_test_set_and_normalize(
         test_dataset._data.y = (test_dataset._data.y - mean) / std
 
     mean, std = mean[:, target].item(), std[:, target].item()
-    
+
     return train_dataset, valid_dataset, test_dataset, std

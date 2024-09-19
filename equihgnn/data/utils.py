@@ -1,24 +1,28 @@
 import numpy as np
-from torch_geometric.data import Data
 import torch_geometric.transforms as T
-from ogb.utils.features import atom_to_feature_vector, bond_to_feature_vector 
+from ogb.utils.features import atom_to_feature_vector, bond_to_feature_vector
 from rdkit import Chem
+from torch_geometric.data import Data
 
 
 def compute_ring_features(ring: frozenset[int], molecule: Chem.Mol) -> tuple[float]:
-    """ https://github.com/NSAPH-Projects/topological-equivariant-networks/blob/main/etnn/qm9/lifts/ring.py """
+    """https://github.com/NSAPH-Projects/topological-equivariant-networks/blob/main/etnn/qm9/lifts/ring.py"""
     ring_atoms = [molecule.GetAtomWithIdx(idx) for idx in ring]
     ring_size = float(len(ring))
     is_aromatic = float(all(atom.GetIsAromatic() for atom in ring_atoms))
-    has_heteroatom = float(any(atom.GetSymbol() not in ("C", "H") for atom in ring_atoms))
+    has_heteroatom = float(
+        any(atom.GetSymbol() not in ("C", "H") for atom in ring_atoms)
+    )
     is_saturated = float(
-        all(atom.GetHybridization() == Chem.HybridizationType.SP3 for atom in ring_atoms)
+        all(
+            atom.GetHybridization() == Chem.HybridizationType.SP3 for atom in ring_atoms
+        )
     )
     return (ring_size, is_aromatic, has_heteroatom, is_saturated)
 
 
 def extract_ring_info(mol) -> set[tuple[set, set]]:
-    """ Indentify rings in a graph """
+    """Indentify rings in a graph"""
     cells = set()
     ring_info = mol.GetRingInfo()
     for ring in ring_info.AtomRings():
@@ -29,7 +33,7 @@ def extract_ring_info(mol) -> set[tuple[set, set]]:
 
 
 def he_conj(mol):
-    """ get node index and hyperedge index of conjugated structure in a molecule
+    """get node index and hyperedge index of conjugated structure in a molecule
 
     Args:
         mol (RDKit MOL): input molecule
@@ -57,7 +61,7 @@ def edge_order(e_idx):
     return e_order
 
 
-def smi2hgraph(smiles_string, use_ring:bool=False):
+def smi2hgraph(smiles_string, use_ring: bool = False):
     """
     Converts a SMILES string to hypergraph Data object
     :input: SMILES string (str)
@@ -73,7 +77,7 @@ def smi2hgraph(smiles_string, use_ring:bool=False):
 
     # bonds
     num_bond_features = 1  # bond type (single, double, triple, conjugated)
-    if len(mol.GetBonds()) > 0: # mol has bonds
+    if len(mol.GetBonds()) > 0:  # mol has bonds
         n_idx, e_idx, bond_fvs = [], [], []
         for i, bond in enumerate(mol.GetBonds()):
             n_idx.append(bond.GetBeginAtomIdx())
@@ -83,12 +87,12 @@ def smi2hgraph(smiles_string, use_ring:bool=False):
             bond_type = bond_to_feature_vector(bond)[0]
             bond_fvs.append([bond_type])
 
-    else:   # mol has no bonds
-        print('Invalid SMILES: {}'.format(smiles_string))
-        n_idx, e_idx= [], []
+    else:  # mol has no bonds
+        print("Invalid SMILES: {}".format(smiles_string))
+        n_idx, e_idx = [], []
         bond_fvs = np.empty((0, num_bond_features), dtype=np.int64)
         return (atom_fvs, n_idx, e_idx, bond_fvs)
-    
+
     # hyperedges for conjugated bonds
     he_n, he_e = he_conj(mol)
     num_bond = mol.GetNumBonds()
@@ -97,7 +101,7 @@ def smi2hgraph(smiles_string, use_ring:bool=False):
         n_idx += he_n
         e_idx += he_e
         bond_fvs += len(set(he_e)) * [num_bond_features * [5]]
-    
+
     if use_ring:
         cells = extract_ring_info(mol=mol)
         ring_he_n, ring_he_e = [], []
@@ -117,7 +121,7 @@ def smi2hgraph(smiles_string, use_ring:bool=False):
     return (atom_fvs, n_idx, e_idx, bond_fvs)
 
 
-def mol2hgraph(mol, use_ring:bool=False):
+def mol2hgraph(mol, use_ring: bool = False):
     """
     Converts an RDKit Mol object to a hypergraph Data object.
     :input: RDKit Mol object
@@ -142,7 +146,7 @@ def mol2hgraph(mol, use_ring:bool=False):
             bond_fvs.append([bond_type])
 
     else:  # mol has no bonds
-        print('Invalid molecule: {}'.format(Chem.MolToSmiles(mol)))
+        print("Invalid molecule: {}".format(Chem.MolToSmiles(mol)))
         n_idx, e_idx = [], []
         bond_fvs = np.empty((0, num_bond_features), dtype=np.int64)
         return (atom_fvs, n_idx, e_idx, bond_fvs)
@@ -176,10 +180,21 @@ def mol2hgraph(mol, use_ring:bool=False):
 
 
 class HData(Data):
-    """ PyG data class for molecular hypergraphs
-    """
-    def __init__(self, x=None, edge_index=None, edge_attr=None, y=None, pos=None,
-                 edge_index0=None, edge_index1=None, n_e=None, smi=None, **kwargs):
+    """PyG data class for molecular hypergraphs"""
+
+    def __init__(
+        self,
+        x=None,
+        edge_index=None,
+        edge_attr=None,
+        y=None,
+        pos=None,
+        edge_index0=None,
+        edge_index1=None,
+        n_e=None,
+        smi=None,
+        **kwargs
+    ):
         super().__init__(x, edge_index, edge_attr, y, pos, **kwargs)
         self.edge_index0 = edge_index0
         self.edge_index1 = edge_index1
@@ -187,9 +202,9 @@ class HData(Data):
         self.smi = smi
 
     def __inc__(self, key, value, *args, **kwargs):
-        if key == 'edge_index0':
+        if key == "edge_index0":
             return self.x.size(0)
-        if key == 'edge_index1':
+        if key == "edge_index1":
             return self.n_e
         else:
             return super().__inc__(key, value, *args, **kwargs)
@@ -199,13 +214,13 @@ class OneTarget(T.BaseTransform):
     def __init__(self, target=0):
         super().__init__()
         self.target = target
-    
+
     def __call__(self, data):
         # Specify target.
         data.y = data.y[:, self.target]
         return data
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # test code
     pass

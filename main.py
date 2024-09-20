@@ -5,6 +5,7 @@ import time
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import CometLogger, CSVLogger
 from torch_geometric.loader import DataLoader
 from torchmetrics import MetricCollection
@@ -53,6 +54,7 @@ class LitModel(pl.LightningModule):
             on_epoch=True,
             prog_bar=True,
             batch_size=self.hparams.batch_size,
+            sync_dist=True,
         )
 
         return mse_loss
@@ -67,7 +69,7 @@ class LitModel(pl.LightningModule):
     def on_validation_epoch_end(self):
         mae_loss = self.eval_metrics.compute()
         mae_loss = {f"val_{k}": v for k, v in mae_loss.items()}
-        self.log_dict(mae_loss, prog_bar=True)
+        self.log_dict(mae_loss, prog_bar=True, sync_dist=True)
 
         lr = self.optimizers().param_groups[0]["lr"]
         self.log(
@@ -77,6 +79,7 @@ class LitModel(pl.LightningModule):
             on_epoch=True,
             prog_bar=True,
             batch_size=self.hparams.batch_size,
+            sync_dist=True,
         )
 
         self.eval_metrics.reset()
@@ -91,7 +94,7 @@ class LitModel(pl.LightningModule):
     def on_test_epoch_end(self):
         mae_loss = self.eval_metrics.compute()
         mae_loss = {f"test_{k}": v for k, v in mae_loss.items()}
-        self.log_dict(mae_loss)
+        self.log_dict(mae_loss, sync_dist=True)
 
         lr = self.optimizers().param_groups[0]["lr"]
         self.log(
@@ -101,6 +104,7 @@ class LitModel(pl.LightningModule):
             on_epoch=True,
             prog_bar=True,
             batch_size=self.hparams.batch_size,
+            sync_dist=True,
         )
 
         self.eval_metrics.reset()
@@ -220,6 +224,12 @@ if __name__ == "__main__":
     )
     loggers = [commet_logger, csv_logger]
 
+    checkpoint_callback = ModelCheckpoint(
+        save_top_k=3,
+        monitor="val_mse_mean",
+        mode="min",
+    )
+
     for run in range(args.runs):
         # Set global seed for this run
         seed = args.seed + run
@@ -233,13 +243,14 @@ if __name__ == "__main__":
         trainer_args = {
             "max_epochs": args.epochs,
             "logger": loggers,
-            "devices": 1 if torch.cuda.is_available() else 0,
+            "devices": "auto",
+            "callbacks": [checkpoint_callback],
         }
 
         if args.debug:
             trainer_args["fast_dev_run"] = True
 
-        trainer = pl.Trainer(**trainer_args)
+        trainer = pl.Trainer(**trainer_args, strategy="ddp_find_unused_parameters_true")
 
         trainer.fit(model, train_loader, valid_loader)
 

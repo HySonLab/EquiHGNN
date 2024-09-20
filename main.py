@@ -250,7 +250,7 @@ if __name__ == "__main__":
         if args.debug:
             trainer_args["fast_dev_run"] = True
 
-        trainer = pl.Trainer(**trainer_args)
+        trainer = pl.Trainer(**trainer_args, strategy="ddp_find_unused_parameters_true")
 
         trainer.fit(model, train_loader, valid_loader)
 

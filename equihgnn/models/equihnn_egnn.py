@@ -37,6 +37,8 @@ class EGNNEquiHNN(nn.Module):
             dim=args.MLP_hidden,
             norm_coors=True,
             norm_feats=True,
+            valid_radius=5.0,
+            num_nearest_neighbors=16,
         )
 
         self.atom_encoder = AtomEncoder(emb_dim=args.MLP_hidden)
@@ -122,6 +124,8 @@ class EGNNEquiHNNS(nn.Module):
             dim=args.MLP_hidden,
             norm_coors=True,
             norm_feats=True,
+            valid_radius=5.0,
+            num_nearest_neighbors=16,
         )
 
         self.conv = MHNNSConv(
@@ -192,6 +196,8 @@ class EGNNEquiHNNM(nn.Module):
             dim=args.MLP_hidden,
             norm_coors=True,
             norm_feats=True,
+            valid_radius=5.0,
+            num_nearest_neighbors=16,
         )
 
         self.atom_encoder = AtomEncoder(emb_dim=args.MLP_hidden)

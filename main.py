@@ -110,7 +110,8 @@ class LitModel(pl.LightningModule):
             self.model.parameters(), lr=self.hparams.lr, weight_decay=self.hparams.wd
         )
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-            optimizer, mode="min", factor=0.7, patience=5, min_lr=self.hparams.min_lr
+            optimizer, mode="min", factor=0.25, patience=5, 
+            # min_lr=self.hparams.min_lr
         )
         return {
             "optimizer": optimizer,
@@ -123,11 +124,11 @@ if __name__ == "__main__":
     print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
     start_time = time.time()
 
-    parser = argparse.ArgumentParser(description="OPV Training with MHNN")
+    parser = argparse.ArgumentParser(description="Training with MHNN")
 
     # Dataset arguments
     parser.add_argument("--data_dir", type=str, default="datasets/opv3d")
-    parser.add_argument("--target", type=int, default=0, help="target of dataset")
+    parser.add_argument("--target", type=int, help="target of dataset", required=True)
     parser.add_argument("--data", default="opv_hg", help="data type")
     parser.add_argument(
         "--use_ring", action="store_true", help="using rings with conjugated bonds"
@@ -199,43 +200,57 @@ if __name__ == "__main__":
     valid_loader = DataLoader(valid_dataset, batch_size=args.batch_size, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
 
-    # Set up loggers
-    suffix = "_use_ring" if args.use_ring else "_no_ring"
-    csv_logger = CSVLogger(
-        save_dir="logs/",
-        name="opv_"
-        + str(args.target)
-        + "_"
-        + args.method
-        + "_"
-        + args.data
-        + "_"
-        + suffix,
-    )
-    commet_logger = CometLogger(
-        api_key=os.environ["COMET_API_KEY"] if "COMET_API_KEY" in os.environ else None,
-        project_name="Geometric Molecular Hypergraph",
-        experiment_name=f"opv_{args.target}_{args.method}_{args.data}_{suffix}",
-        save_dir="logs/",
-    )
-    loggers = [commet_logger, csv_logger]
-
     for run in range(args.runs):
         # Set global seed for this run
         seed = args.seed + run
         pl.seed_everything(seed=seed, workers=True)
         print(f"\nRun No. {run+1}:")
         print(f"Seed: {seed}\n")
+        
+        # Set up loggers
+        suffix = "_use_ring" if args.use_ring else "_no_ring"
+        experiment_name = f"{args.data}_{args.target}_{args.method}_{suffix}"
+        csv_logger = CSVLogger(
+            save_dir="logs/",
+            name=experiment_name
+        )
+        experiment_save_dir = os.path.join("logs", experiment_name, f"version_{csv_logger.version}")
+
+        commet_logger = CometLogger(
+            api_key=os.environ["COMET_API_KEY"] if "COMET_API_KEY" in os.environ else None,
+            project_name="Geometric Molecular Hypergrartyrtph",
+            experiment_name=experiment_name,
+            save_dir=experiment_save_dir,
+        )
+        loggers = [commet_logger, csv_logger]
 
         # Initialize Lightning model
         model = LitModel(args, std=std)
 
+        summary_callback = pl.callbacks.ModelSummary(max_depth=8)
+        early_stopping_callback = pl.callbacks.EarlyStopping(
+            monitor='val_mae_mean',
+            patience=20,
+            # verbose=True, 
+            mode='min'
+        )
+        checkpoint_callback = pl.callbacks.ModelCheckpoint(
+            dirpath=experiment_save_dir,
+            filename="{epoch}-{val_mae_mean}",
+            save_top_k=1,
+            monitor='val_mae_mean',
+            mode='min'
+        )
+
+        callbacks = [summary_callback, early_stopping_callback, checkpoint_callback ]
+
         trainer_args = {
             "max_epochs": args.epochs,
             "logger": loggers,
+            "callbacks": callbacks,
             "devices": 1 if torch.cuda.is_available() else 0,
         }
-
+        
         if args.debug:
             trainer_args["fast_dev_run"] = True
 

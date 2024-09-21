@@ -7,6 +7,7 @@ TASK=$1
 # Use default settings
 python -u main.py \
     --method mhnnm \
+    --data_dir datasets/qm9 \
     --data qm9_hg \
     --use_ring \
     --runs 1 \
@@ -21,7 +22,6 @@ python -u main.py \
     --output_hidden 128 \
     --aggregate mean \
     --lr 0.0001 \
-    --min_lr 0.0001 \
     --wd 0 \
     --clip_gnorm 5.0 \
     --dropout 0.0 \

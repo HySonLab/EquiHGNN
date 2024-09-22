@@ -114,8 +114,8 @@ class LitModel(pl.LightningModule):
             self.model.parameters(), lr=self.hparams.lr, weight_decay=self.hparams.wd
         )
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-            optimizer, mode="min", factor=0.25, patience=5, 
-            # min_lr=self.hparams.min_lr
+            optimizer, mode="min", factor=0.1, patience=10, 
+            min_lr=self.hparams.lr*1e-5
         )
         return {
             "optimizer": optimizer,

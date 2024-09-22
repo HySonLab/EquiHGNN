@@ -219,10 +219,11 @@ if __name__ == "__main__":
             name=experiment_name
         )
         experiment_save_dir = os.path.join("logs", experiment_name, f"version_{csv_logger.version}")
+        os.makedirs(experiment_save_dir, exist_ok=True)
 
         commet_logger = CometLogger(
             api_key=os.environ["COMET_API_KEY"] if "COMET_API_KEY" in os.environ else None,
-            project_name="Geometric Molecular Hypergrartyrtph",
+            project_name="Geometric Molecular Hypergraph",
             experiment_name=experiment_name,
             save_dir=experiment_save_dir,
         )

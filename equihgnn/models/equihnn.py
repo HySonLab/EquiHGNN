@@ -5,8 +5,8 @@ from ogb.graphproppred.mol_encoder import AtomEncoder
 from torch_geometric.nn import global_add_pool
 
 from equihgnn.common.registry import registry
-from equihgnn.models.conv import MHNNConv, MHNNSConv
-from equihgnn.models.mlp import MLP
+from equihgnn.models.layers.conv import MHNNConv, MHNNSConv
+from equihgnn.models.layers.mlp import MLP
 
 
 @registry.register_model("equihnn")

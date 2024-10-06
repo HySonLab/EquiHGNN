@@ -6,3 +6,6 @@ torch_geometric==2.5.3
 e3nn==0.5.1
 comet-ml==3.45.0
 einops==0.8.0
+beartype==0.18.5
+taylor-series-linear-attention==0.1.12
+einx==0.3.0

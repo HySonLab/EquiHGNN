@@ -9,14 +9,6 @@ This project currently utilizes two main datasets:
 
 ## Setup
 
-### Docker
-
-Make sure the following tools have been installed properly:
-
-- [Docker](https://docs.docker.com/engine/install/)
-- [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
-- CMake
-
 ### Conda
 
 Make sure [conda](https://docs.anaconda.com/miniconda/miniconda-install/) has been installed properly
@@ -64,89 +56,5 @@ Please ensure you run the code formatter before committing or opening a pull req
 ## Run
 
 Visit the [./scripts](./scripts) directory to customize parameters such as: model name, dataset type, hyperparameters (learning rate, epochs, batch size, etc.)
-
-## Run on Docker
-
-To build the Docker image:
-
-```bash
-make build
-```
-
-To clean the unused containers:
-
-```bash
-make clean
-```
-
-## Train
-
-To use the Comet logging:
-
-```bash
-export COMET_API_KEY=<YOUR-API-KEY>
-```
-
-### OPV dataset
-
-- To train and evaluate the _Molecular Hypergraph Neural Network_:
-
-  - On a specific task:
-
-    ```bash
-    # molecular: 0-gap, 1-homo, 2-lumo, 3-spectral_overlap
-    # polymer: 4-homo, 5-lumo, 6-gap, 7-optical_lumo
-    make train_opv $TASK
-    ```
-
-  - On all tasks:
-    ```bash
-    make train_opv_all
-    ```
-
-- To train and evaluate the _Equivariant Molecular Hypergraph Neural Network_:
-
-  - On a specific task:
-
-    ```bash
-    # molecular: 0-gap, 1-homo, 2-lumo, 3-spectral_overlap
-    # polymer: 4-homo, 5-lumo, 6-gap, 7-optical_lumo
-    make train_opv3d $TASK
-    ```
-
-  - On all tasks:
-    ```bash
-    make train_opv3d_all
-    ```
-
-### QM9 dataset
-
-- To train and evaluate the _Molecular Hypergraph Neural Network_:
-
-  - On a specific task:
-
-    ```bash
-    # 0-alpha, 1-gap, 2-homo, 3-lumo, 4-mu, 5-cv
-    make train_qm9 $TASK
-    ```
-
-  - On all tasks:
-    ```bash
-    make train_qm9_all
-    ```
-
-- To train and evaluate the _Equivariant Molecular Hypergraph Neural Network_:
-
-  - On a specific task:
-
-    ```bash
-    # 0-alpha, 1-gap, 2-homo, 3-lumo, 4-mu, 5-cv
-    make train_qm9_3d $TASK
-    ```
-
-  - On all tasks:
-    ```bash
-    make train_qm9_3d_all
-    ```
 
 ## Results

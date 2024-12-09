@@ -3,10 +3,11 @@ import torch.nn as nn
 from ogb.graphproppred.mol_encoder import AtomEncoder
 from torch_geometric.nn import global_add_pool
 
-from equihgnn.common.registry import registry
-from equihgnn.models.layers.conv import MHNNConv, MHNNSConv
-from equihgnn.models.layers.egnn_layer import EGNN
-from equihgnn.models.layers.mlp import MLP
+from egnn_pytorch import EGNN
+
+from ..common.registry import registry
+from layers.conv import MHNNConv, MHNNSConv
+from layers.mlp import MLP
 
 
 @registry.register_model("egnn_equihnn")

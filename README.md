@@ -58,3 +58,14 @@ Please ensure you run the code formatter before committing or opening a pull req
 Visit the [./scripts](./scripts) directory to customize parameters such as: model name, dataset type, hyperparameters (learning rate, epochs, batch size, etc.)
 
 ## Results
+
+
+## New Installation
+```
+conda create --prefix ./.env python=3.10
+conda activate <path>
+
+uv pip install -e .
+
+uv lock
+```

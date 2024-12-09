@@ -5,9 +5,9 @@ from torch_geometric.nn import global_add_pool
 
 from equiformer_pytorch import Equiformer
 
-from ..common.registry import registry
-from layers.conv import MHNNConv, MHNNSConv
-from layers.mlp import MLP
+from equihgnn.common.registry import registry
+from equihgnn.models.layers.conv import MHNNConv, MHNNSConv
+from equihgnn.models.layers.mlp import MLP
 
 
 @registry.register_model("equiformer_equihnns")

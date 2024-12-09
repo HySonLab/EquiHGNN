@@ -62,10 +62,12 @@ Visit the [./scripts](./scripts) directory to customize parameters such as: mode
 
 ## New Installation
 ```
-conda create --prefix ./.env python=3.10
-conda activate <path>
+conda create --prefix ./.venv python=3.10
+conda activate ./.venv
 
 uv pip install -e .
 
 uv lock
 ```
+bash setup_env.sh 
+equihgnn-train configs/ehgnn.yaml 

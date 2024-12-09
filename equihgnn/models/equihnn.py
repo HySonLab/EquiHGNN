@@ -4,9 +4,9 @@ from e3nn.o3 import SphericalHarmonics
 from ogb.graphproppred.mol_encoder import AtomEncoder
 from torch_geometric.nn import global_add_pool
 
-from ..common.registry import registry
-from layers.conv import MHNNConv, MHNNSConv
-from layers.mlp import MLP
+from equihgnn.common.registry import registry
+from equihgnn.models.layers.conv import MHNNConv, MHNNSConv
+from equihgnn.models.layers.mlp import MLP
 
 
 @registry.register_model("equihnn")
@@ -201,7 +201,7 @@ class EquiHNNM(nn.Module):
         self.layers = nn.ModuleList()
         self.batch_norms = nn.ModuleList()
         for _ in range(self.nlayer):
-            self.layers.append(
+            self.equihgnn.models.layersappend(
                 MHNNConv(
                     args.MLP_hidden,
                     mlp1_layers=self.mlp1_layers,

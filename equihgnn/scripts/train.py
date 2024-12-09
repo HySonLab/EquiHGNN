@@ -6,7 +6,9 @@ import pytorch_lightning as pl
 import torch
 import torch.nn as nn
 
-from pytorch_lightning.loggers import CometLogger, CSVLogger
+from dotenv import load_dotenv
+
+from pytorch_lightning.loggers import CometLogger, WandbLogger, MLFlowLogger, CSVLogger
 
 from torch_geometric.loader import DataLoader
 from torchmetrics.regression import MeanAbsoluteError
@@ -15,6 +17,13 @@ from equihgnn.utils import create_model, create_train_val_test_set_and_normalize
 
 torch.set_float32_matmul_precision("medium")
 
+# Load environment variables from .env file
+load_dotenv()
+
+# Get API keys from environment variables
+comet_api_key = os.getenv("COMET_API_KEY")
+wandb_api_key = os.getenv("WANDB_API_KEY")
+mlflow_tracking_uri = os.getenv("MLFLOW_TRACKING_URI")
 
 class PL_Model(pl.LightningModule):
     def __init__(self, hparams, std=None):
@@ -169,13 +178,34 @@ def main():
         experiment_save_dir = os.path.join("logs", experiment_name, f"version_{csv_logger.version}")
         os.makedirs(experiment_save_dir, exist_ok=True)
 
-        commet_logger = CometLogger(
-            api_key="qagcCboPOVUgd06fVzpoc5rly",
-            project_name="equivariant-hypergraph-neural-network",
-            experiment_name=experiment_name,
-            save_dir=experiment_save_dir,
-        )
-        loggers = [commet_logger, csv_logger]
+        loggers = [csv_logger]
+
+        # Add CometLogger if API key is available
+        if comet_api_key:
+            comet_logger = CometLogger(
+                api_key=comet_api_key,
+                project_name="equivariant-hypergraph-neural-network",
+                experiment_name=experiment_name,
+                save_dir=experiment_save_dir,
+            )
+            loggers.append(comet_logger)
+
+        # Add WandBLogger if API key is available
+        if wandb_api_key:
+            wandb_logger = WandbLogger(
+                project="equivariant-hypergraph-neural-network",
+                name=experiment_name,
+                save_dir=experiment_save_dir,
+            )
+            loggers.append(wandb_logger)
+
+        # Add MLFlowLogger if tracking URI is available
+        if mlflow_tracking_uri:
+            mlflow_logger = MLFlowLogger(
+                experiment_name=experiment_name,
+                tracking_uri=mlflow_tracking_uri,
+            )
+            loggers.append(mlflow_logger)
 
         # Initialize Lightning model
         model = PL_Model(configs, std=std)

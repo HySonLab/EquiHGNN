@@ -9,65 +9,48 @@ This project currently utilizes two main datasets:
 
 ## Setup
 
-### Conda
-
-Make sure [conda](https://docs.anaconda.com/miniconda/miniconda-install/) has been installed properly
+Make sure [conda](https://docs.anaconda.com/miniconda/miniconda-install/) is properly installed.
 
 1. Create a new conda environment and activate it:
-
    ```bash
-   conda create --name equihgnn python=3.10
-   conda activate equihgnn
+   conda create --prefix ./.venv python=3.10
+   conda activate ./.venv
    ```
 
-2. Install specific `torch` and `torch-cluster` version. We use torch `2.2.1` with CUDA `12.1` support:
-
+2. Install the project and dependencies using `uv`:
    ```bash
-   pip install torch==2.2.1 torchvision==0.17.1 --index-url https://download.pytorch.org/whl/cu121
-   pip install torch-cluster -f https://data.pyg.org/whl/torch-2.2.1+cu121.html
+   uv pip install -e .
    ```
 
-3. Install other dependencies:
-
+3. Run the environment setup script for PyG dependencies:
    ```bash
-   pip install -r requirements.txt
-   ```
-
-4. Install the project as an editable module:
-   ```bash
-   pip install -e .
+   bash setup_env.sh
    ```
 
 ## Development
 
 Please ensure you run the code formatter before committing or opening a pull request. This helps maintain clean and consistent code throughout the project.
 
-1. Install pre-commit
-
+1. Install pre-commit:
    ```bash
    pip install pre-commit
    ```
 
-2. Install Git Hook
+2. Install Git Hook:
    ```bash
    pre-commit install
    ```
 
 ## Run
 
-Visit the [./scripts](./scripts) directory to customize parameters such as: model name, dataset type, hyperparameters (learning rate, epochs, batch size, etc.)
+1. Modify the `.env` file for environment configuration.
+
+2. Customize parameters such as model name, dataset type, and hyperparameters (learning rate, epochs, batch size, etc.) in the [./configs](./configs) directory.
+
+3. Train the model:
+   ```bash
+   equihgnn-train configs/ehgnn.yaml
+   ```
+
 
 ## Results
-
-
-## New Installation
-```
-conda create --prefix ./.venv python=3.10
-conda activate ./.venv
-
-uv pip install -e .
-
-uv lock
-```
-bash setup_env.sh 
-equihgnn-train configs/ehgnn.yaml 

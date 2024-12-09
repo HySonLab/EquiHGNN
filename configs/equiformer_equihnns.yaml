@@ -1,0 +1,37 @@
+# Dataset arguments
+data_dir: "datasets/opv3d"
+data: "opv_hg_3d" #"opv_hg"
+use_ring: false
+target: 1
+# molecular: 0-gap, 1-homo, 2-lumo, 3-spectral_overlap
+# polymer: 4-homo, 5-lumo, 6-gap, 7-optical_lumo
+
+# Training hyperparameters
+runs: 1
+seed: 0
+device: 0
+epochs: 300
+batch_size: 1
+lr: 0.0001
+min_lr: 0.000001
+wd: 0.0
+clip_gnorm: 5.0
+num_workers: 16
+
+# Model hyperparameters
+method: "equiformer_equihnns"
+All_num_layers: 3
+MLP1_num_layers: 2
+MLP2_num_layers: 2
+MLP3_num_layers: 2
+MLP4_num_layers: 2
+output_num_layers: 3
+MLP_hidden: 64
+output_hidden: 128
+aggregate: "mean"
+normalization: "ln"
+activation: "relu"
+dropout: 0.0
+
+# Debugging
+debug: false

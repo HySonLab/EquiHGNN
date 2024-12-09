@@ -42,7 +42,7 @@ class SE3TransformerEquiHNNS(nn.Module):
             dim_head=32,
             num_degrees=2,
             valid_radius=5,
-            num_neighbors=16,
+            num_neighbors=8,
         )
 
         self.conv = MHNNSConv(

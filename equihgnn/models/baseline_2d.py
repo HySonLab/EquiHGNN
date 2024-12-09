@@ -13,7 +13,7 @@ from torch_geometric.nn import (
 from torch_geometric.nn.aggr import Set2Set
 from torch_geometric.utils import degree
 
-from equihgnn.common.registry import registry
+from ..common.registry import registry
 
 
 class GINConv(MessagePassing):

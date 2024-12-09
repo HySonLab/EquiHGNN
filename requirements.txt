@@ -9,3 +9,6 @@ einops==0.8.0
 beartype==0.18.5
 taylor-series-linear-attention==0.1.12
 einx==0.3.0
+git+https://github.com/duydl/se3-transformer-pytorch#egg=se3-transformer-pytorch
+git+https://github.com/duydl/equiformer-pytorch.git#egg=equiformer_pytorch
+git+https://github.com/duydl/egnn-pytorch.git#egg=egnn_pytorch

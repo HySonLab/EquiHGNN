@@ -5,7 +5,6 @@ import time
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
-from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import CometLogger, CSVLogger
 from torch_geometric.loader import DataLoader
 from torchmetrics import MetricCollection
@@ -114,8 +113,11 @@ class LitModel(pl.LightningModule):
             self.model.parameters(), lr=self.hparams.lr, weight_decay=self.hparams.wd
         )
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-            optimizer, mode="min", factor=0.1, patience=10, 
-            min_lr=self.hparams.lr*1e-5
+            optimizer,
+            mode="min",
+            factor=0.1,
+            patience=10,
+            min_lr=self.hparams.lr * 1e-5,
         )
         return {
             "optimizer": optimizer,
@@ -210,19 +212,20 @@ if __name__ == "__main__":
         pl.seed_everything(seed=seed, workers=True)
         print(f"\nRun No. {run+1}:")
         print(f"Seed: {seed}\n")
-        
+
         # Set up loggers
         suffix = "_use_ring" if args.use_ring else "_no_ring"
         experiment_name = f"{args.data}_{args.target}_{args.method}_{suffix}"
-        csv_logger = CSVLogger(
-            save_dir="logs/",
-            name=experiment_name
+        csv_logger = CSVLogger(save_dir="logs/", name=experiment_name)
+        experiment_save_dir = os.path.join(
+            "logs", experiment_name, f"version_{csv_logger.version}"
         )
-        experiment_save_dir = os.path.join("logs", experiment_name, f"version_{csv_logger.version}")
         os.makedirs(experiment_save_dir, exist_ok=True)
 
         commet_logger = CometLogger(
-            api_key=os.environ["COMET_API_KEY"] if "COMET_API_KEY" in os.environ else None,
+            api_key=os.environ["COMET_API_KEY"]
+            if "COMET_API_KEY" in os.environ
+            else None,
             project_name="Geometric Molecular Hypergraph",
             experiment_name=experiment_name,
             save_dir=experiment_save_dir,
@@ -232,22 +235,15 @@ if __name__ == "__main__":
         # Initialize Lightning model
         model = LitModel(args, std=std)
 
-        summary_callback = pl.callbacks.ModelSummary(max_depth=8)
-        early_stopping_callback = pl.callbacks.EarlyStopping(
-            monitor='val_mae_mean',
-            patience=20,
-            # verbose=True, 
-            mode='min'
-        )
         checkpoint_callback = pl.callbacks.ModelCheckpoint(
             dirpath=experiment_save_dir,
             filename="{epoch}-{val_mae_mean}",
             save_top_k=1,
-            monitor='val_mae_mean',
-            mode='min'
+            monitor="val_mae_mean",
+            mode="min",
         )
 
-        callbacks = [summary_callback, early_stopping_callback, checkpoint_callback ]
+        callbacks = [checkpoint_callback]
 
         trainer_args = {
             "max_epochs": args.epochs,
@@ -255,7 +251,7 @@ if __name__ == "__main__":
             "devices": "auto",
             "callbacks": callbacks,
         }
-        
+
         if args.debug:
             trainer_args["fast_dev_run"] = True
 

@@ -6,9 +6,8 @@ TASK=$1
 
 # Use default settings
 python -u main.py \
-    --method equihnnm \
+    --method egnn_equihnns \
     --data qm9_hg_3d \
-    --use_ring \
     --runs 1 \
     --target $TASK \
     --All_num_layers 3 \

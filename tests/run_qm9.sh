@@ -8,7 +8,6 @@ TASK=$1
 python -u main.py \
     --method equihnnm \
     --data qm9_hg_3d \
-    --use_ring \
     --runs 1 \
     --target $TASK \
     --All_num_layers 3 \

@@ -3,6 +3,7 @@ from equihgnn.models.equihnn import EquiHNN, EquiHNNM, EquiHNNS
 from equihgnn.models.equihnn_egnn import EGNNEquiHNN, EGNNEquiHNNM, EGNNEquiHNNS
 from equihgnn.models.equihnn_equiformer import EquiformerEquiHNNS
 from equihgnn.models.equihnn_se3_transformer import SE3TransformerEquiHNNS
+from equihgnn.models.equihnn_visnet import VisNetEquiHNN, VisNetEquiHNNM, VisNetEquiHNNS
 from equihgnn.models.mhnn import MHNN, MHNNM, MHNNS
 
 __all__ = [
@@ -18,4 +19,7 @@ __all__ = [
     "MHNNS",
     "SE3TransformerEquiHNNS",
     "EquiformerEquiHNNS",
+    "VisNetEquiHNN",
+    "VisNetEquiHNNM",
+    "VisNetEquiHNNS",
 ]

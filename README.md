@@ -1,6 +1,8 @@
 # Rotationally Equivariant Hypergraph Neural Networks (EquiHGNN)
 
-## Dataset
+EquiHGNN is a deep learning framework for molecular property prediction using hypergraph neural networks with rotational equivariance.
+
+## Datasets
 
 This project currently utilizes two main datasets:
 
@@ -9,144 +11,93 @@ This project currently utilizes two main datasets:
 
 ## Setup
 
-### Docker
+First, create and activate a Conda environment:
 
-Make sure the following tools have been installed properly:
-
-- [Docker](https://docs.docker.com/engine/install/)
-- [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
-- CMake
-
-### Conda
-
-Make sure [conda](https://docs.anaconda.com/miniconda/miniconda-install/) has been installed properly
-
-1. Create a new conda environment and activate it:
-
-   ```bash
-   conda create --name equihgnn python=3.10
-   conda activate equihgnn
-   ```
-
-2. Install specific `torch` and `torch-cluster` version. We use torch `2.2.1` with CUDA `12.1` support:
-
-   ```bash
-   pip install torch==2.2.1 torchvision==0.17.1 --index-url https://download.pytorch.org/whl/cu121
-   pip install torch-cluster -f https://data.pyg.org/whl/torch-2.2.1+cu121.html
-   ```
-
-3. Install other dependencies:
-
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. Install the project as an editable module:
-   ```bash
-   pip install -e .
-   ```
-
-## Development
-
-Please ensure you run the code formatter before committing or opening a pull request. This helps maintain clean and consistent code throughout the project.
-
-1. Install pre-commit
-
-   ```bash
-   pip install pre-commit
-   ```
-
-2. Install Git Hook
-   ```bash
-   pre-commit install
-   ```
-
-## Run
-
-Visit the [./scripts](./scripts) directory to customize parameters such as: model name, dataset type, hyperparameters (learning rate, epochs, batch size, etc.)
-
-## Run on Docker
-
-To build the Docker image:
-
-```bash
-make build
+```shell
+conda create --name equihgnn python=3.10
+conda activate equihgnn
+make
 ```
 
-To clean the unused containers:
+## Train the Model
 
-```bash
-make clean
-```
+Training parameters, including model type, dataset selection, and hyperparameters, are configurable within the `./scripts` directory. A flexible interface allows easy model selection using the `--method` flag. The following models are supported:
 
-## Train
+- `mhnnm`: Molecular Hypergraph Neural Network (baseline).
+- `egnn_equihnns`: Equivariant Graph Neural Network (EGNN) integration for geometric feature extraction.
+- `se3_transformer_equihnns`: SE(3) Transformer integration for geometric feature extraction.
+- `equiformer_equihnns`: Equiformer integration for geometric feature extraction.
+- `visnet_equihnns`: VisNet integration for geometric feature extraction.
+- `faformer_equihnns`: Frame Averaging Transformer (FAFormer) integration for geometric feature extraction.
 
-To use the Comet logging:
+(Optional) Enable Comet Logging to track experiments with Comet, set up your API key:
 
-```bash
+```shell
 export COMET_API_KEY=<YOUR-API-KEY>
 ```
 
-### OPV dataset
+### OPV Dataset Tasks
 
-- To train and evaluate the _Molecular Hypergraph Neural Network_:
+OPV dataset task IDs:
 
-  - On a specific task:
+- **Molecular**: 0-gap, 1-homo, 2-lumo, 3-spectral_overlap
+- **Polymer**: 4-homo, 5-lumo, 6-gap, 7-optical_lumo
 
-    ```bash
-    # molecular: 0-gap, 1-homo, 2-lumo, 3-spectral_overlap
-    # polymer: 4-homo, 5-lumo, 6-gap, 7-optical_lumo
-    make train_opv $TASK
-    ```
+Train without geometric information:
 
-  - On all tasks:
-    ```bash
-    make train_opv_all
-    ```
+```shell
+bash scripts/run_opv.sh $TASK_ID
+```
 
-- To train and evaluate the _Equivariant Molecular Hypergraph Neural Network_:
+Train with geometric information:
 
-  - On a specific task:
+```shell
+bash scripts/run_opv_3d.sh $TASK_ID
+```
 
-    ```bash
-    # molecular: 0-gap, 1-homo, 2-lumo, 3-spectral_overlap
-    # polymer: 4-homo, 5-lumo, 6-gap, 7-optical_lumo
-    make train_opv3d $TASK
-    ```
+### QM9 Dataset Tasks
 
-  - On all tasks:
-    ```bash
-    make train_opv3d_all
-    ```
+QM9 dataset task IDs: 0-alpha, 1-gap, 2-homo, 3-lumo, 4-mu, 5-cv
 
-### QM9 dataset
+Train without geometric information:
 
-- To train and evaluate the _Molecular Hypergraph Neural Network_:
+```shell
+bash scripts/run_qm9.sh $TASK_ID
+```
 
-  - On a specific task:
+Train with geometric information:
 
-    ```bash
-    # 0-alpha, 1-gap, 2-homo, 3-lumo, 4-mu, 5-cv
-    make train_qm9 $TASK
-    ```
+```shell
+bash scripts/run_qm9_3d.sh $TASK_ID
+```
 
-  - On all tasks:
-    ```bash
-    make train_qm9_all
-    ```
+## Training with Docker
 
-- To train and evaluate the _Equivariant Molecular Hypergraph Neural Network_:
+Build the Docker image:
 
-  - On a specific task:
+```shell
+docker build -t equihgnn .
+```
 
-    ```bash
-    # 0-alpha, 1-gap, 2-homo, 3-lumo, 4-mu, 5-cv
-    make train_qm9_3d $TASK
-    ```
+Run training inside a Docker container:
 
-  - On all tasks:
-    ```bash
-    make train_qm9_3d_all
-    ```
+```shell
+docker run \
+  --gpus all \
+  -v ./datasets:/module/datasets \
+  -v ./logs:/module/logs \
+  -v ./scripts:/module/scripts \
+  -e COMET_API_KEY=$(COMET_API_KEY) \
+  equihgnn bash scripts/*.sh $TASK_ID
+```
 
-## Results
+## Acknowledgements
+
+This project utilizes code and inspiration from the following open-source repositories:
+
+- **MHNN Baseline:** [schwallergroup/mhnn](https://github.com/schwallergroup/mhnn)
+- **EGNNs:** [lucidrains/egnn-pytorch](https://github.com/lucidrains/egnn-pytorch)
+- **SE(3) Transformers:** [lucidrains/se3-transformer-pytorch](https://github.com/lucidrains/se3-transformer-pytorch)
+- **Equiformer:** [lucidrains/equiformer-pytorch](https://github.com/lucidrains/equiformer-pytorch)
+- **Frame Averaging Transformer:** [Graph-and-Geometric-Learning/Frame-Averaging-Transformer](https://github.com/Graph-and-Geometric-Learning/Frame-Averaging-Transformer)
+- **VisNet:** [pyg-team/pytorch_geometric](https://github.com/pyg-team/pytorch_geometric/blob/2f1e4f2e666db65056d001650488be9b31f8dd0f/torch_geometric/nn/models/visnet.py)

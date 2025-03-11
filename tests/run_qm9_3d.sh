@@ -7,6 +7,7 @@ TASK=$1
 # Use default settings
 python -u main.py \
     --method egnn_equihnns \
+    --data_dir datasets/qm9 \
     --data qm9_hg_3d \
     --runs 1 \
     --target $TASK \

@@ -6,8 +6,9 @@ TASK=$1
 
 # Use default settings
 python -u main.py \
-    --method equihnnm \
-    --data qm9_hg_3d \
+    --method mhnnm \
+    --data_dir datasets/qm9 \
+    --data qm9_hg \
     --runs 1 \
     --target $TASK \
     --All_num_layers 3 \

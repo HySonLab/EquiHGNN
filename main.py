@@ -1,7 +1,9 @@
 import argparse
+import io
 import os
 import time
 
+import pandas as pd
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
@@ -38,6 +40,8 @@ class LitModel(pl.LightningModule):
                 "mse": BootStrapper(base_metric=MeanSquaredError(), num_bootstraps=50),
             }
         )
+
+        self.test_outputs = []
 
     def forward(self, data):
         return self.model(data)
@@ -85,6 +89,15 @@ class LitModel(pl.LightningModule):
 
     def test_step(self, data, batch_idx):
         out = self(data)
+
+        preds = out.detach()
+        targets = data.y.detach()
+
+        preds = self.all_gather(preds).cpu().numpy().flatten()
+        targets = self.all_gather(targets).cpu().numpy().flatten()
+
+        self.test_outputs.append((preds, targets))
+
         if self.std:
             self.eval_metrics.update(out * self.std, data.y * self.std)
         else:
@@ -106,6 +119,19 @@ class LitModel(pl.LightningModule):
             sync_dist=True,
         )
 
+        if self.trainer.is_global_zero:  # Only on main process
+            all_preds, all_targets = zip(*self.test_outputs)
+            all_preds = [item for sublist in all_preds for item in sublist]
+            all_targets = [item for sublist in all_targets for item in sublist]
+
+            df = pd.DataFrame({"pred": all_preds, "truth": all_targets})
+
+            csv_buffer = io.StringIO()
+            df.to_csv(csv_buffer, index=False)
+            csv_buffer.seek(0)
+            self.logger.experiment.log_asset(csv_buffer, "test_results.csv")
+
+        self.test_outputs.clear()
         self.eval_metrics.reset()
 
     def configure_optimizers(self):

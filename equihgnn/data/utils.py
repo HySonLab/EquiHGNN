@@ -61,7 +61,7 @@ def edge_order(e_idx):
     return e_order
 
 
-def smi2hgraph(smiles_string, use_ring: bool = False):
+def smi2hgraph(smiles_string):
     """
     Converts a SMILES string to hypergraph Data object
     :input: SMILES string (str)
@@ -102,26 +102,10 @@ def smi2hgraph(smiles_string, use_ring: bool = False):
         e_idx += he_e
         bond_fvs += len(set(he_e)) * [num_bond_features * [5]]
 
-    if use_ring:
-        cells = extract_ring_info(mol=mol)
-        ring_he_n, ring_he_e = [], []
-        for idx, (node_idc, fvs) in enumerate(cells):
-            for atom_idx in node_idc:
-                ring_he_n.append(atom_idx)
-                ring_he_e.append(idx)
-
-            # Use 'has_heteroatom' as the ring feature
-            bond_fvs.append([int(fvs[-2])])
-
-        if len(ring_he_n) != 0:
-            ring_he_e = [_id + num_bond + len(set(he_e)) for _id in ring_he_e]
-            n_idx += ring_he_n
-            e_idx += ring_he_e
-
     return (atom_fvs, n_idx, e_idx, bond_fvs)
 
 
-def mol2hgraph(mol, use_ring: bool = False):
+def mol2hgraph(mol):
     """
     Converts an RDKit Mol object to a hypergraph Data object.
     :input: RDKit Mol object
@@ -159,22 +143,6 @@ def mol2hgraph(mol, use_ring: bool = False):
         n_idx += he_n
         e_idx += he_e
         bond_fvs += len(set(he_e)) * [num_bond_features * [5]]
-
-    if use_ring:
-        cells = extract_ring_info(mol=mol)
-        ring_he_n, ring_he_e = [], []
-        for idx, (node_idc, fvs) in enumerate(cells):
-            for atom_idx in node_idc:
-                ring_he_n.append(atom_idx)
-                ring_he_e.append(idx)
-
-            # Use 'has_heteroatom' as the ring feature
-            bond_fvs.append([int(fvs[0])])
-
-        if len(ring_he_n) != 0:
-            ring_he_e = [_id + num_bond + len(set(he_e)) for _id in ring_he_e]
-            n_idx += ring_he_n
-            e_idx += ring_he_e
 
     return (atom_fvs, n_idx, e_idx, bond_fvs)
 
@@ -219,6 +187,55 @@ class OneTarget(T.BaseTransform):
         # Specify target.
         data.y = data.y[:, self.target]
         return data
+
+
+def mol2graph(mol):
+    """
+    Converts molecule object to graph Data object
+    :input: molecule object
+    :return: graph object
+    """
+
+    # atoms
+    atom_features_list = []
+    for atom in mol.GetAtoms():
+        atom_features_list.append(atom_to_feature_vector(atom))
+    x = np.array(atom_features_list, dtype=np.int64)
+
+    # bonds
+    num_bond_features = 3  # bond type, bond stereo, is_conjugated
+    if len(mol.GetBonds()) > 0:  # mol has bonds
+        edges_list = []
+        edge_features_list = []
+        for bond in mol.GetBonds():
+            i = bond.GetBeginAtomIdx()
+            j = bond.GetEndAtomIdx()
+
+            edge_feature = bond_to_feature_vector(bond)
+
+            # add edges in both directions
+            edges_list.append((i, j))
+            edge_features_list.append(edge_feature)
+            edges_list.append((j, i))
+            edge_features_list.append(edge_feature)
+
+        # data.edge_index: Graph connectivity in COO format with shape [2, num_edges]
+        edge_index = np.array(edges_list, dtype=np.int64).T
+
+        # data.edge_attr: Edge feature matrix with shape [num_edges, num_edge_features]
+        edge_attr = np.array(edge_features_list, dtype=np.int64)
+
+    else:  # mol has no bonds
+        edge_index = np.empty((2, 0), dtype=np.int64)
+        edge_attr = np.empty((0, num_bond_features), dtype=np.int64)
+
+    graph = dict()
+    graph["edge_index"] = edge_index
+    graph["edge_feat"] = edge_attr
+    graph["node_feat"] = x
+    graph["num_nodes"] = len(x)
+
+    return graph
 
 
 if __name__ == "__main__":

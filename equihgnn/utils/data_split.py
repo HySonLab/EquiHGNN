@@ -1,20 +1,52 @@
 import torch_geometric.transforms as T
 from torch.utils.data import random_split
 
-from equihgnn.data import OneTarget, OPVBase, QM9Base
+from equihgnn.data import OneTarget, OPVBase
 from equihgnn.utils.create import create_data
 
 
-def create_train_val_test_set_and_normalize(
-    target: int, data_name: str, data_dir: str, use_ring: bool
-):
+def create_train_val_test_set_and_normalize(target: int, data_name: str, data_dir: str):
     transform = T.Compose([OneTarget(target=target)])
     data_cls = create_data(data_name=data_name)
 
     print(f"Use {data_cls.__name__} dataset")
 
-    if issubclass(data_cls, QM9Base):
-        dataset = data_cls(root=data_dir, transform=transform, use_ring=use_ring)
+    if issubclass(data_cls, OPVBase):
+        if target in [0, 1, 2, 3]:
+            polymer = False
+        elif target in [4, 5, 6, 7]:
+            polymer = True
+        else:
+            raise Exception("Invalid target value!")
+
+        train_dataset = data_cls(
+            root=data_dir,
+            polymer=polymer,
+            partition="train",
+            transform=transform,
+        )
+        valid_dataset = data_cls(
+            root=data_dir,
+            polymer=polymer,
+            partition="valid",
+            transform=transform,
+        )
+        test_dataset = data_cls(
+            root=data_dir,
+            polymer=polymer,
+            partition="test",
+            transform=transform,
+        )
+
+        # Normalize targets to mean = 0 and std = 1.
+        mean = train_dataset._data.y.mean(dim=0, keepdim=True)
+        std = train_dataset._data.y.std(dim=0, keepdim=True)
+        train_dataset._data.y = (train_dataset._data.y - mean) / std
+        valid_dataset._data.y = (valid_dataset._data.y - mean) / std
+        test_dataset._data.y = (test_dataset._data.y - mean) / std
+
+    else:
+        dataset = data_cls(root=data_dir, transform=transform)
 
         train_ratio = 0.8
         valid_ratio = 0.1
@@ -35,43 +67,6 @@ def create_train_val_test_set_and_normalize(
         train_dataset.dataset.y = (train_dataset.dataset.y - mean) / std
         valid_dataset.dataset.y = (valid_dataset.dataset.y - mean) / std
         test_dataset.dataset.y = (test_dataset.dataset.y - mean) / std
-
-    elif issubclass(data_cls, OPVBase):
-        if target in [0, 1, 2, 3]:
-            polymer = False
-        elif target in [4, 5, 6, 7]:
-            polymer = True
-        else:
-            raise Exception("Invalid target value!")
-
-        train_dataset = data_cls(
-            root=data_dir,
-            polymer=polymer,
-            partition="train",
-            transform=transform,
-            use_ring=use_ring,
-        )
-        valid_dataset = data_cls(
-            root=data_dir,
-            polymer=polymer,
-            partition="valid",
-            transform=transform,
-            use_ring=use_ring,
-        )
-        test_dataset = data_cls(
-            root=data_dir,
-            polymer=polymer,
-            partition="test",
-            transform=transform,
-            use_ring=use_ring,
-        )
-
-        # Normalize targets to mean = 0 and std = 1.
-        mean = train_dataset._data.y.mean(dim=0, keepdim=True)
-        std = train_dataset._data.y.std(dim=0, keepdim=True)
-        train_dataset._data.y = (train_dataset._data.y - mean) / std
-        valid_dataset._data.y = (valid_dataset._data.y - mean) / std
-        test_dataset._data.y = (test_dataset._data.y - mean) / std
 
     mean, std = mean[:, target].item(), std[:, target].item()
 

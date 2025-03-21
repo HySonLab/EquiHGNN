@@ -15,10 +15,10 @@ from equihgnn.data.utils import HData, edge_order, mol2hgraph, smi2hgraph
 
 def download_url(url, output_path):
     if not os.path.exists(output_path):
-        print(f"Downloading {url} to {output_path}...")
+        print("Downloading {url} to {output_path}...")
         torch.hub.download_url_to_file(url, output_path, progress=True)
     else:
-        print(f"File already exists at {output_path}, skipping download.")
+        print("File already exists at {output_path}, skipping download.")
 
 
 class OPVBase(InMemoryDataset):
@@ -59,21 +59,16 @@ class OPVBase(InMemoryDataset):
         transform=None,
         pre_transform=None,
         pre_filter=None,
-        use_ring: bool = False,
     ):
         assert polymer in [True, False]
         self.polymer = polymer
         assert partition in ["train", "valid", "test"]
         self.partition = partition
-        self.use_ring: bool = use_ring
         super().__init__(
             root, transform, pre_transform, pre_filter, force_reload=force_reload
         )
 
         self.data, self.slices = torch.load(self.processed_paths[0])
-
-        if self.use_ring:
-            print("Use rings as the hyperedge also")
 
     def mean(self, target):
         y = torch.cat([self.get(i).y for i in range(len(self))], dim=0)
@@ -109,13 +104,13 @@ class OPVBase(InMemoryDataset):
     def download(self):
 
         raw_files = [
-            "train.sdf",
+            "train.sd",
             "train.csv",
-            "polymer_train.sdf",
+            "polymer_train.sd",
             "polymer_train.csv",
-            "valid.sdf",
+            "valid.sd",
             "valid.csv",
-            "test.sdf",
+            "test.sd",
             "test.csv",
         ]
 
@@ -156,28 +151,26 @@ class OPVHGraph3D(OPVBase):
     @property
     def raw_file_names(self):
         return [
-            "train.sdf",
+            "train.sd",
             "train.csv",
-            "polymer_train.sdf",
+            "polymer_train.sd",
             "polymer_train.csv",
-            "valid.sdf",
+            "valid.sd",
             "valid.csv",
-            "test.sdf",
+            "test.sd",
             "test.csv",
         ]
 
     @property
     def processed_file_names(self):
-        suffix = "_use_ring" if self.use_ring else "_no_ring"
-
         if self.partition == "train" and not self.polymer:
-            return [f"hg3d_train_{suffix}.pt"]
+            return ["hg3d_train.pt"]
         elif self.partition == "train" and self.polymer:
-            return [f"hg3d_polymer_train_{suffix}.pt"]
+            return ["hg3d_polymer_train.pt"]
         elif self.partition == "valid":
-            return [f"hg3d_valid_{suffix}.pt"]
+            return ["hg3d_valid.pt"]
         elif self.partition == "test":
-            return [f"hg3d_test_{suffix}.pt"]
+            return ["hg3d_test.pt"]
 
     def compute_3dhgraph(self, sdf_path, csv_path):
         suppl = Chem.SDMolSupplier(sdf_path, removeHs=False, sanitize=False)
@@ -197,9 +190,7 @@ class OPVHGraph3D(OPVBase):
             y = torch.tensor([target[i]], dtype=torch.float)
 
             try:
-                atom_fvs, n_idx, e_idx, bond_fvs = mol2hgraph(
-                    mol, use_ring=self.use_ring
-                )
+                atom_fvs, n_idx, e_idx, bond_fvs = mol2hgraph(mol)
             except Exception as e:
                 print(e)
                 continue
@@ -259,28 +250,26 @@ class OPVGraph3D(OPVBase):
     @property
     def raw_file_names(self):
         return [
-            "train.sdf",
+            "train.sd",
             "train.csv",
-            "polymer_train.sdf",
+            "polymer_train.sd",
             "polymer_train.csv",
-            "valid.sdf",
+            "valid.sd",
             "valid.csv",
-            "test.sdf",
+            "test.sd",
             "test.csv",
         ]
 
     @property
     def processed_file_names(self):
-        suffix = "_use_ring" if self.use_ring else "_no_ring"
-
         if self.partition == "train" and not self.polymer:
-            return [f"g3d_train_{suffix}.pt"]
+            return ["g3d_train.pt"]
         elif self.partition == "train" and self.polymer:
-            return [f"g3d_polymer_train_{suffix}.pt"]
+            return ["g3d_polymer_train.pt"]
         elif self.partition == "valid":
-            return [f"g3d_valid_{suffix}.pt"]
+            return ["g3d_valid.pt"]
         elif self.partition == "test":
-            return [f"g3d_test_{suffix}.pt"]
+            return ["g3d_test.pt"]
 
     def compute_3dgraph(self, sdf_path, csv_path):
         # create graph data list from SDF and CSV files
@@ -335,16 +324,14 @@ class OPVHGraph(OPVBase):
 
     @property
     def processed_file_names(self):
-        suffix = "_use_ring" if self.use_ring else "_no_ring"
-
         if self.partition == "train" and not self.polymer:
-            return [f"hg_train_{suffix}.pt"]
+            return ["hg_train.pt"]
         elif self.partition == "train" and self.polymer:
-            return [f"hg_polymer_train_{suffix}.pt"]
+            return ["hg_polymer_train.pt"]
         elif self.partition == "valid":
-            return [f"hg_valid_{suffix}.pt"]
+            return ["hg_valid.pt"]
         elif self.partition == "test":
-            return [f"hg_test_{suffix}.pt"]
+            return ["hg_test.pt"]
 
     def compute_hgraph(self, csv_path):
         df = pd.read_csv(csv_path)
@@ -356,7 +343,7 @@ class OPVHGraph(OPVBase):
         data_list = []
         for i, smi in enumerate(tqdm(smiles)):
 
-            atom_fvs, n_idx, e_idx, bond_fvs = smi2hgraph(smi, use_ring=self.use_ring)
+            atom_fvs, n_idx, e_idx, bond_fvs = smi2hgraph(smi)
             x = torch.tensor(atom_fvs, dtype=torch.long)
             edge_index0 = torch.tensor(n_idx, dtype=torch.long)
             edge_index1 = torch.tensor(e_idx, dtype=torch.long)
@@ -414,16 +401,14 @@ class OPVGraph(OPVBase):
 
     @property
     def processed_file_names(self):
-        suffix = "_use_ring" if self.use_ring else "_no_ring"
-
         if self.partition == "train" and not self.polymer:
-            return [f"g_train_{suffix}.pt"]
+            return ["g_train.pt"]
         elif self.partition == "train" and self.polymer:
-            return [f"g_polymer_train_{suffix}.pt"]
+            return ["g_polymer_train.pt"]
         elif self.partition == "valid":
-            return [f"g_valid_{suffix}.pt"]
+            return ["g_valid.pt"]
         elif self.partition == "test":
-            return [f"g_test_{suffix}.pt"]
+            return ["g_test.pt"]
 
     def compute_graph(self, csv_path):
         df = pd.read_csv(csv_path)

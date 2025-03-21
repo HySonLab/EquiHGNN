@@ -162,9 +162,6 @@ if __name__ == "__main__":
     parser.add_argument("--data_dir", type=str, default="datasets/opv3d")
     parser.add_argument("--target", type=int, help="target of dataset", required=True)
     parser.add_argument("--data", default="opv_hg", help="data type")
-    parser.add_argument(
-        "--use_ring", action="store_true", help="using rings with conjugated bonds"
-    )
 
     # Training hyperparameters
     parser.add_argument("--runs", default=1, type=int)
@@ -225,7 +222,6 @@ if __name__ == "__main__":
         target=args.target,
         data_name=args.data,
         data_dir=args.data_dir,
-        use_ring=args.use_ring,
     )
 
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
@@ -240,8 +236,7 @@ if __name__ == "__main__":
         print(f"Seed: {seed}\n")
 
         # Set up loggers
-        suffix = "_use_ring" if args.use_ring else "_no_ring"
-        experiment_name = f"{args.data}_{args.target}_{args.method}_{suffix}"
+        experiment_name = f"{args.data}_{args.target}_{args.method}"
         csv_logger = CSVLogger(save_dir="logs/", name=experiment_name)
         experiment_save_dir = os.path.join(
             "logs", experiment_name, f"version_{csv_logger.version}"

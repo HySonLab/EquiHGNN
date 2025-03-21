@@ -125,16 +125,12 @@ class QM9Base(InMemoryDataset):
         transform=None,
         pre_transform=None,
         pre_filter=None,
-        use_ring: bool = False,
     ):
-        self.use_ring: bool = use_ring
         super().__init__(
             root, transform, pre_transform, pre_filter, force_reload=force_reload
         )
 
         self.data, self.slices = torch.load(self.processed_paths[0])
-        if self.use_ring:
-            print("Use rings as the hyperedge also")
 
     def mean(self, target):
         y = torch.cat([self.get(i).y for i in range(len(self))], dim=0)
@@ -174,8 +170,7 @@ class QM9HGraph3D(QM9Base):
 
     @property
     def processed_file_names(self):
-        suffix = "_use_ring" if self.use_ring else "_no_ring"
-        return [f"3dhg_data_{suffix}.pt"]
+        return ["3dhg_data.pt"]
 
     def compute_3dhgraph(self, sdf_path, csv_path):
         suppl = Chem.SDMolSupplier(sdf_path, removeHs=False, sanitize=False)
@@ -195,9 +190,7 @@ class QM9HGraph3D(QM9Base):
             y = targets[i].unsqueeze(0)
 
             try:
-                atom_fvs, n_idx, e_idx, bond_fvs = mol2hgraph(
-                    mol, use_ring=self.use_ring
-                )
+                atom_fvs, n_idx, e_idx, bond_fvs = mol2hgraph(mol)
             except Exception as e:
                 print(e)
                 continue
@@ -244,8 +237,7 @@ class QM9HGraph(QM9Base):
 
     @property
     def processed_file_names(self):
-        suffix = "_use_ring" if self.use_ring else "_no_ring"
-        return [f"hg_data_{suffix}.pt"]
+        return ["hg_data.pt"]
 
     def compute_hgraph(self, sdf_path, csv_path):
         df = pd.read_csv(csv_path)
@@ -295,8 +287,7 @@ class QM9Graph(QM9Base):
 
     @property
     def processed_file_names(self):
-        suffix = "_use_ring" if self.use_ring else "_no_ring"
-        return [f"g_data_{suffix}.pt"]
+        return ["g_data.pt"]
 
     def compute_graph(self, sdf_path, csv_path):
         df = pd.read_csv(csv_path)
@@ -356,8 +347,7 @@ class QM9Graph3D(QM9Base):
 
     @property
     def processed_file_names(self):
-        suffix = "_use_ring" if self.use_ring else "_no_ring"
-        return [f"3dg_data_{suffix}.pt"]
+        return ["3dg_data.pt"]
 
     def compute_graph(self, sdf_path, csv_path):
         df = pd.read_csv(csv_path)

@@ -160,7 +160,7 @@ if __name__ == "__main__":
 
     # Dataset arguments
     parser.add_argument("--data_dir", type=str, default="datasets/opv3d")
-    parser.add_argument("--target", type=int, help="target of dataset", required=True)
+    parser.add_argument("--target", type=int, help="target of dataset", default=0)
     parser.add_argument("--data", default="opv_hg", help="data type")
 
     # Training hyperparameters

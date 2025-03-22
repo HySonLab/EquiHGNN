@@ -1,7 +1,7 @@
 import torch_geometric.transforms as T
 from torch.utils.data import random_split
 
-from equihgnn.data import OneTarget, OPVBase
+from equihgnn.data import OneTarget, OPVBase, PCQM4Mv2Base
 from equihgnn.utils.create import create_data
 
 
@@ -46,7 +46,10 @@ def create_train_val_test_set_and_normalize(target: int, data_name: str, data_di
         test_dataset._data.y = (test_dataset._data.y - mean) / std
 
     else:
-        dataset = data_cls(root=data_dir, transform=transform)
+        if isinstance(data_cls, PCQM4Mv2Base):
+            dataset = data_cls(root=data_dir)
+        else:
+            dataset = data_cls(root=data_dir, transform=transform)
 
         train_ratio = 0.8
         valid_ratio = 0.1
@@ -68,6 +71,9 @@ def create_train_val_test_set_and_normalize(target: int, data_name: str, data_di
         valid_dataset.dataset.y = (valid_dataset.dataset.y - mean) / std
         test_dataset.dataset.y = (test_dataset.dataset.y - mean) / std
 
-    mean, std = mean[:, target].item(), std[:, target].item()
+    if mean.dim() != 1:
+        mean, std = mean[:, target].item(), std[:, target].item()
+    else:
+        mean, std = mean.item(), std.item()
 
     return train_dataset, valid_dataset, test_dataset, std

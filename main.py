@@ -264,7 +264,9 @@ if __name__ == "__main__":
             mode="min",
         )
 
-        callbacks = [checkpoint_callback]
+        early_stopping = pl.callbacks.EarlyStopping(monitor="val_mae_mean", patience=50)
+
+        callbacks = [checkpoint_callback, early_stopping]
 
         trainer_args = {
             "max_epochs": args.epochs,

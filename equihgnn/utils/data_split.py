@@ -46,7 +46,7 @@ def create_train_val_test_set_and_normalize(target: int, data_name: str, data_di
         test_dataset._data.y = (test_dataset._data.y - mean) / std
 
     else:
-        if isinstance(data_cls, PCQM4Mv2Base):
+        if issubclass(data_cls, PCQM4Mv2Base):
             dataset = data_cls(root=data_dir)
         else:
             dataset = data_cls(root=data_dir, transform=transform)

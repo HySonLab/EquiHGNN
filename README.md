@@ -1,13 +1,25 @@
-# Rotationally Equivariant Hypergraph Neural Networks (EquiHGNN)
+# EquiHGNN: Scalable Rotationally Equivariant Hypergraph Neural Networks
 
-EquiHGNN is a deep learning framework for molecular property prediction using hypergraph neural networks with rotational equivariance.
+## Abstract
+
+Molecular interactions often involve high-order relationships that cannot be fully captured by traditional graph-based models limited to pairwise connections. Hypergraphs naturally extend graphs by enabling multi-way interactions, making them well-suited for modeling complex molecular systems. In this work, we introduce EquiHGNN, an Equivariant Hypergraph Neural Network framework that integrates symmetry-aware representations to improve molecular modeling. By enforcing equivariance under relevant transformation groups, our approach preserves geometric and topological properties, leading to more robust and physically meaningful representations. We examine a range of equivariant architectures and demonstrate that integrating symmetry constraints leads to notable performance gains on large-scale molecular datasets. Experiments on both small and large molecules show that high-order interactions offer limited benefits for small molecules but consistently outperform 2D graphs on larger ones. Adding geometric features to these high-order structures further improves performance, emphasizing the value of spatial information in molecular learning.
+
+<p align="center">
+   <img src="assets/conj_bipartite.svg" width="100%"/><br/>
+   <i>
+    a) Illustration of a hypergraph constructed from a molecule, where vertices represent atoms and hyperedges represent conjugated bonds, highlighted in blue and orange. b) Hypergraph to Bipartite representations
+  </i>
+
+</p>
 
 ## Datasets
 
-This project currently utilizes two main datasets:
+This project currently utilizes four main datasets:
 
-- **OPV Dataset**: The Organic Photovoltaic (OPV) dataset contains molecular structures and their corresponding photovoltaic properties.
-- **QM9 Dataset**: The QM9 dataset consists of small molecules with geometric, energetic, electronic, and thermodynamic properties.
+- **OPV**: The Organic Photovoltaic (OPV) dataset contains molecular structures and their corresponding photovoltaic properties.
+- **QM9**: The QM9 dataset consists of small molecules with geometric, energetic, electronic, and thermodynamic properties.
+- **PCQM4Mv2**: From the PubChemQC project, this dataset of ~3.7M molecules supports quantum chemistry tasks like predicting HOMO–LUMO gaps from SMILES; useful for materials discovery and drug design.
+- **Molecule3D**: Also based on PubChemQC, this benchmark includes ~3.9M molecular graphs for predicting 3D structures and quantum properties from 2D inputs, supporting applications in molecular modeling and property prediction.
 
 ## Setup
 
@@ -23,52 +35,59 @@ make
 
 Training parameters, including model type, dataset selection, and hyperparameters, are configurable within the `./scripts` directory. A flexible interface allows easy model selection using the `--method` flag. The following models are supported:
 
+- `gin`, `gat`: 2D Graph Neural Network.
 - `mhnnm`: Molecular Hypergraph Neural Network (baseline).
 - `egnn_equihnns`: Equivariant Graph Neural Network (EGNN) integration for geometric feature extraction.
-- `se3_transformer_equihnns`: SE(3) Transformer integration for geometric feature extraction.
 - `equiformer_equihnns`: Equiformer integration for geometric feature extraction.
-- `visnet_equihnns`: VisNet integration for geometric feature extraction.
 - `faformer_equihnns`: Frame Averaging Transformer (FAFormer) integration for geometric feature extraction.
 
-(Optional) Enable Comet Logging to track experiments with Comet, set up your API key:
-
-```shell
-export COMET_API_KEY=<YOUR-API-KEY>
-```
-
-### OPV Dataset Tasks
+### OPV
 
 OPV dataset task IDs:
 
 - **Molecular**: 0-gap, 1-homo, 2-lumo, 3-spectral_overlap
 - **Polymer**: 4-homo, 5-lumo, 6-gap, 7-optical_lumo
 
-Train without geometric information:
-
 ```shell
+# Without geometric:
 bash scripts/run_opv.sh $TASK_ID
-```
 
-Train with geometric information:
-
-```shell
+# With geometric:
 bash scripts/run_opv_3d.sh $TASK_ID
 ```
 
-### QM9 Dataset Tasks
+### QM9
 
 QM9 dataset task IDs: 0-alpha, 1-gap, 2-homo, 3-lumo, 4-mu, 5-cv
 
-Train without geometric information:
-
 ```shell
+# Without geometric:
 bash scripts/run_qm9.sh $TASK_ID
+
+# With geometric:
+bash scripts/run_qm9_3d.sh $TASK_ID
 ```
 
-Train with geometric information:
+### PCQM4Mv2
 
 ```shell
-bash scripts/run_qm9_3d.sh $TASK_ID
+# Without geometric:
+bash scripts/run_pcqm.sh
+
+# With geometric:
+bash scripts/run_pcqm_3d.sh
+```
+
+### Molecule3D
+
+Molecule3D dataset task IDs 0-dipole x, 1-dipole y, 2-dipole z, 3-homo, 4-lumo, 5-homolumogap, 6-scf-energy
+
+```shell
+# Without geometric:
+bash scripts/run_molecule.sh $TASK_ID
+
+# With geometric:
+bash scripts/run_molecule_3d.sh $TASK_ID
 ```
 
 ## Training with Docker

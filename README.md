@@ -58,7 +58,7 @@ bash scripts/run_opv_3d.sh $TASK_ID
 
 ### QM9
 
-QM9 dataset task IDs: 0-alpha, 1-gap, 2-homo, 3-lumo, 4-mu, 5-cv
+QM9 dataset task IDs: 0-mu, 1-alpha, 2-homo, 3-lumo, 4-epsilon, 5-$R^2$
 
 ```shell
 # Without geometric:

@@ -7,7 +7,7 @@ Molecular interactions often involve high-order relationships that cannot be ful
 <p align="center">
    <img src="Main_Figure.png" width="100%"/><br/>
    <i>
-    a) Illustration of a hypergraph constructed from a molecule, where vertices represent atoms and hyperedges represent conjugated bonds, highlighted in blue and orange. b) Hypergraph to Bipartite representations
+    Overview of the Equivariant Hypergraph Neural Network framework (EquiHGNN).
   </i>
 
 </p>

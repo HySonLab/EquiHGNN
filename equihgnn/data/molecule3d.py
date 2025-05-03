@@ -240,7 +240,7 @@ class MoleculeHGraph(MoleculeBase):
                 data = HData(
                     x=x,
                     z=z,
-                    pos=coords,
+                    pos=torch.tensor(coords, dtype=torch.float32),
                     y=targets[abs_idx].unsqueeze(0),
                     idx=i,
                     n_e=n_e,

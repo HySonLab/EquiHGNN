@@ -5,7 +5,7 @@
 Molecular interactions often involve high-order relationships that cannot be fully captured by traditional graph-based models limited to pairwise connections. Hypergraphs naturally extend graphs by enabling multi-way interactions, making them well-suited for modeling complex molecular systems. In this work, we introduce EquiHGNN, an Equivariant Hypergraph Neural Network framework that integrates symmetry-aware representations to improve molecular modeling. By enforcing equivariance under relevant transformation groups, our approach preserves geometric and topological properties, leading to more robust and physically meaningful representations. We examine a range of equivariant architectures and demonstrate that integrating symmetry constraints leads to notable performance gains on large-scale molecular datasets. Experiments on both small and large molecules show that high-order interactions offer limited benefits for small molecules but consistently outperform 2D graphs on larger ones. Adding geometric features to these high-order structures further improves performance, emphasizing the value of spatial information in molecular learning.
 
 <p align="center">
-   <img src="assets/conj_bipartite.svg" width="100%"/><br/>
+   <img src="Main_Figure.png" width="100%"/><br/>
    <i>
     a) Illustration of a hypergraph constructed from a molecule, where vertices represent atoms and hyperedges represent conjugated bonds, highlighted in blue and orange. b) Hypergraph to Bipartite representations
   </i>

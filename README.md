@@ -120,3 +120,17 @@ This project utilizes code and inspiration from the following open-source reposi
 - **Equiformer:** [lucidrains/equiformer-pytorch](https://github.com/lucidrains/equiformer-pytorch)
 - **Frame Averaging Transformer:** [Graph-and-Geometric-Learning/Frame-Averaging-Transformer](https://github.com/Graph-and-Geometric-Learning/Frame-Averaging-Transformer)
 - **VisNet:** [pyg-team/pytorch_geometric](https://github.com/pyg-team/pytorch_geometric/blob/2f1e4f2e666db65056d001650488be9b31f8dd0f/torch_geometric/nn/models/visnet.py)
+
+## Please cite our work!
+
+```bibtex
+@misc{dang2025equihgnnscalablerotationallyequivariant,
+      title={EquiHGNN: Scalable Rotationally Equivariant Hypergraph Neural Networks}, 
+      author={Tien Dang and Truong-Son Hy},
+      year={2025},
+      eprint={2505.05650},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2505.05650}, 
+}
+```

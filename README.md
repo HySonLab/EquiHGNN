@@ -7,7 +7,7 @@ Paper: https://arxiv.org/pdf/2505.05650.pdf
 Molecular interactions often involve high-order relationships that cannot be fully captured by traditional graph-based models limited to pairwise connections. Hypergraphs naturally extend graphs by enabling multi-way interactions, making them well-suited for modeling complex molecular systems. In this work, we introduce EquiHGNN, an Equivariant Hypergraph Neural Network framework that integrates symmetry-aware representations to improve molecular modeling. By enforcing equivariance under relevant transformation groups, our approach preserves geometric and topological properties, leading to more robust and physically meaningful representations. We examine a range of equivariant architectures and demonstrate that integrating symmetry constraints leads to notable performance gains on large-scale molecular datasets. Experiments on both small and large molecules show that high-order interactions offer limited benefits for small molecules but consistently outperform 2D graphs on larger ones. Adding geometric features to these high-order structures further improves performance, emphasizing the value of spatial information in molecular learning.
 
 <p align="center">
-   <img src="Main_Figure.png" width="100%"/><br/>
+   <img src="./assets/Main_Figure.png" width="100%"/><br/>
    <i>
     Overview of the Equivariant Hypergraph Neural Network framework (EquiHGNN).
   </i>
@@ -127,12 +127,12 @@ This project utilizes code and inspiration from the following open-source reposi
 
 ```bibtex
 @misc{dang2025equihgnnscalablerotationallyequivariant,
-      title={EquiHGNN: Scalable Rotationally Equivariant Hypergraph Neural Networks}, 
+      title={EquiHGNN: Scalable Rotationally Equivariant Hypergraph Neural Networks},
       author={Tien Dang and Truong-Son Hy},
       year={2025},
       eprint={2505.05650},
       archivePrefix={arXiv},
       primaryClass={cs.LG},
-      url={https://arxiv.org/abs/2505.05650}, 
+      url={https://arxiv.org/abs/2505.05650},
 }
 ```

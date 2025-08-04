@@ -30,6 +30,10 @@ class LitModel(pl.LightningModule):
             self.model = model_cls(
                 1, gnn_type=self.hparams.method, drop_ratio=self.hparams.dropout
             )
+        elif "DimeNet" in model_cls.__name__:
+            self.model = model_cls(
+                hidden_channels=self.hparams.output_hidden, num_target=1
+            )
         else:
             self.model = model_cls(1, self.hparams)
 
@@ -209,9 +213,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
     print(args)
 
-    device = f"cuda:{args.device}" if torch.cuda.is_available() else "cpu"
-    device = torch.device(device)
-
     # Load dataset and normalize targets to mean = 0 and std = 1
     (
         train_dataset,
@@ -224,9 +225,15 @@ if __name__ == "__main__":
         data_dir=args.data_dir,
     )
 
-    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
-    valid_loader = DataLoader(valid_dataset, batch_size=args.batch_size, shuffle=False)
-    test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
+    train_loader = DataLoader(
+        train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=2
+    )
+    valid_loader = DataLoader(
+        valid_dataset, batch_size=args.batch_size, shuffle=False, num_workers=2
+    )
+    test_loader = DataLoader(
+        test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=2
+    )
 
     for run in range(args.runs):
         # Set global seed for this run
@@ -278,7 +285,7 @@ if __name__ == "__main__":
         if args.debug:
             trainer_args["fast_dev_run"] = True
 
-        trainer = pl.Trainer(**trainer_args, strategy="ddp_find_unused_parameters_true")
+        trainer = pl.Trainer(**trainer_args)
 
         trainer.fit(model, train_loader, valid_loader)
 

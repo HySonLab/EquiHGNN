@@ -1,4 +1,5 @@
 from equihgnn.models.baseline_2d import GNN_2D
+from equihgnn.models.dimenet import DimeNet, DimeNetPlusPlus
 from equihgnn.models.equihnn_egnn import EGNNEquiHNN, EGNNEquiHNNM, EGNNEquiHNNS
 from equihgnn.models.equihnn_equiformer import EquiformerEquiHNNS
 from equihgnn.models.equihnn_fa_former import (
@@ -26,4 +27,6 @@ __all__ = [
     "FAFormerEquiHNN",
     "FAFormerEquiHNNM",
     "FAFormerEquiHNNS",
+    "DimeNet",
+    "DimeNetPlusPlus",
 ]

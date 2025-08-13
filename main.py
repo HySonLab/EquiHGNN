@@ -30,7 +30,11 @@ class LitModel(pl.LightningModule):
             self.model = model_cls(
                 1, gnn_type=self.hparams.method, drop_ratio=self.hparams.dropout
             )
-        elif "DimeNet" in model_cls.__name__ or "EGNN_Net" in model_cls.__name__:
+        elif (
+            ("DimeNet" in model_cls.__name__)
+            or ("EGNN_Net" in model_cls.__name__)
+            or ("Equiformer_Net" in model_cls.__name__)
+        ):
             self.model = model_cls(
                 hidden_channels=self.hparams.output_hidden, num_target=1
             )
@@ -271,7 +275,7 @@ if __name__ == "__main__":
             mode="min",
         )
 
-        early_stopping = pl.callbacks.EarlyStopping(monitor="val_mae_mean", patience=50)
+        early_stopping = pl.callbacks.EarlyStopping(monitor="val_mae_mean", patience=20)
 
         callbacks = [checkpoint_callback, early_stopping]
 

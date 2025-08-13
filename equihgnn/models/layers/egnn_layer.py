@@ -278,9 +278,8 @@ class EGNN(nn.Module):
                 ranking.masked_fill_(self_mask, -1.0)
                 ranking.masked_fill_(adj_mat, 0.0)
 
-            nbhd_ranking, nbhd_indices = ranking.topk(
-                num_nearest, dim=-1, largest=False
-            )
+            k = min(num_nearest, ranking.size(-1))
+            nbhd_ranking, nbhd_indices = ranking.topk(k, dim=-1, largest=False)
 
             nbhd_mask = nbhd_ranking <= valid_radius
 
@@ -364,3 +363,150 @@ class EGNN(nn.Module):
             node_out = feats
 
         return node_out, coors_out
+
+
+class EGNN_Network(nn.Module):
+    def __init__(
+        self,
+        *,
+        depth,
+        dim,
+        num_tokens=None,
+        num_edge_tokens=None,
+        num_positions=None,
+        edge_dim=0,
+        num_adj_degrees=None,
+        adj_dim=0,
+        global_linear_attn_every=0,
+        global_linear_attn_heads=8,
+        global_linear_attn_dim_head=64,
+        num_global_tokens=4,
+        **kwargs,
+    ):
+        super().__init__()
+        assert not (
+            exists(num_adj_degrees) and num_adj_degrees < 1
+        ), "make sure adjacent degrees is greater than 1"
+        self.num_positions = num_positions
+
+        self.token_emb = nn.Embedding(num_tokens, dim) if exists(num_tokens) else None
+        self.pos_emb = (
+            nn.Embedding(num_positions, dim) if exists(num_positions) else None
+        )
+        self.edge_emb = (
+            nn.Embedding(num_edge_tokens, edge_dim) if exists(num_edge_tokens) else None
+        )
+        self.has_edges = edge_dim > 0
+
+        self.num_adj_degrees = num_adj_degrees
+        self.adj_emb = (
+            nn.Embedding(num_adj_degrees + 1, adj_dim)
+            if exists(num_adj_degrees) and adj_dim > 0
+            else None
+        )
+
+        edge_dim = edge_dim if self.has_edges else 0
+        adj_dim = adj_dim if exists(num_adj_degrees) else 0
+
+        has_global_attn = global_linear_attn_every > 0
+        self.global_tokens = None
+        if has_global_attn:
+            self.global_tokens = nn.Parameter(torch.randn(num_global_tokens, dim))
+
+        self.layers = nn.ModuleList([])
+        for ind in range(depth):
+            is_global_layer = has_global_attn and (ind % global_linear_attn_every) == 0
+
+            self.layers.append(
+                nn.ModuleList(
+                    [
+                        GlobalLinearAttention(
+                            dim=dim,
+                            heads=global_linear_attn_heads,
+                            dim_head=global_linear_attn_dim_head,
+                        )
+                        if is_global_layer
+                        else None,
+                        EGNN(
+                            dim=dim,
+                            edge_dim=(edge_dim + adj_dim),
+                            norm_feats=True,
+                            **kwargs,
+                        ),
+                    ]
+                )
+            )
+
+    def forward(
+        self,
+        feats,
+        coors,
+        adj_mat=None,
+        edges=None,
+        mask=None,
+        return_coor_changes=False,
+    ):
+        b, device = feats.shape[0], feats.device
+
+        if exists(self.token_emb):
+            feats = self.token_emb(feats)
+
+        if exists(self.pos_emb):
+            n = feats.shape[1]
+            assert (
+                n <= self.num_positions
+            ), f"given sequence length {n} must be less than the number of positions {self.num_positions} set at init"
+            pos_emb = self.pos_emb(torch.arange(n, device=device))
+            feats += rearrange(pos_emb, "n d -> () n d")
+
+        if exists(edges) and exists(self.edge_emb):
+            edges = self.edge_emb(edges)
+
+        # create N-degrees adjacent matrix from 1st degree connections
+        if exists(self.num_adj_degrees):
+            assert exists(
+                adj_mat
+            ), "adjacency matrix must be passed in (keyword argument adj_mat)"
+
+            if len(adj_mat.shape) == 2:
+                adj_mat = repeat(adj_mat.clone(), "i j -> b i j", b=b)
+
+            adj_indices = adj_mat.clone().long()
+
+            for ind in range(self.num_adj_degrees - 1):
+                degree = ind + 2
+
+                next_degree_adj_mat = (adj_mat.float() @ adj_mat.float()) > 0
+                next_degree_mask = (
+                    next_degree_adj_mat.float() - adj_mat.float()
+                ).bool()
+                adj_indices.masked_fill_(next_degree_mask, degree)
+                adj_mat = next_degree_adj_mat.clone()
+
+            if exists(self.adj_emb):
+                adj_emb = self.adj_emb(adj_indices)
+                edges = (
+                    torch.cat((edges, adj_emb), dim=-1) if exists(edges) else adj_emb
+                )
+
+        # setup global attention
+
+        global_tokens = None
+        if exists(self.global_tokens):
+            global_tokens = repeat(self.global_tokens, "n d -> b n d", b=b)
+
+        # go through layers
+
+        coor_changes = [coors]
+
+        for global_attn, egnn in self.layers:
+            if exists(global_attn):
+                feats, global_tokens = global_attn(feats, global_tokens, mask=mask)
+
+            feats, coors = egnn(feats, coors, adj_mat=adj_mat, edges=edges, mask=mask)
+            coor_changes.append(coors)
+
+        if return_coor_changes:
+            return feats, coors, coor_changes
+
+        return feats, coors

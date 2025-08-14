@@ -1,7 +1,7 @@
 import torch_geometric.transforms as T
 from torch.utils.data import random_split
 
-from equihgnn.data import MD17Base, OneTarget, OPVBase, PCQM4Mv2Base
+from equihgnn.data import MD17Base, MD22Base, OneTarget, OPVBase, PCQM4Mv2Base
 from equihgnn.utils.create import create_data
 
 
@@ -49,7 +49,7 @@ def create_train_val_test_set_and_normalize(target: int, data_name: str, data_di
     else:
         if issubclass(data_cls, PCQM4Mv2Base):
             dataset = data_cls(root=data_dir)
-        elif issubclass(data_cls, MD17Base):
+        elif issubclass(data_cls, MD17Base) or issubclass(data_cls, MD22Base):
             dataset = data_cls(root=data_dir, target=target)
         else:
             transform = T.Compose([OneTarget(target=target)])

@@ -1,17 +1,18 @@
 import torch_geometric.transforms as T
 from torch.utils.data import random_split
 
-from equihgnn.data import OneTarget, OPVBase, PCQM4Mv2Base
+from equihgnn.data import MD17Base, OneTarget, OPVBase, PCQM4Mv2Base
 from equihgnn.utils.create import create_data
 
 
 def create_train_val_test_set_and_normalize(target: int, data_name: str, data_dir: str):
-    transform = T.Compose([OneTarget(target=target)])
     data_cls = create_data(data_name=data_name)
 
     print(f"Use {data_cls.__name__} dataset")
 
     if issubclass(data_cls, OPVBase):
+        transform = T.Compose([OneTarget(target=target)])
+
         if target in [0, 1, 2, 3]:
             polymer = False
         elif target in [4, 5, 6, 7]:
@@ -48,7 +49,10 @@ def create_train_val_test_set_and_normalize(target: int, data_name: str, data_di
     else:
         if issubclass(data_cls, PCQM4Mv2Base):
             dataset = data_cls(root=data_dir)
+        elif issubclass(data_cls, MD17Base):
+            dataset = data_cls(root=data_dir, target=target)
         else:
+            transform = T.Compose([OneTarget(target=target)])
             dataset = data_cls(root=data_dir, transform=transform)
 
         train_ratio = 0.8

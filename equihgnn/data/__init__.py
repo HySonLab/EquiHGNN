@@ -1,3 +1,4 @@
+from equihgnn.data.md17 import MD17Base, MD17Graph, MD17HGraph
 from equihgnn.data.molecule3d import MoleculeGraph, MoleculeHGraph
 from equihgnn.data.opv3d import OPVBase, OPVGraph, OPVGraph3D, OPVHGraph, OPVHGraph3D
 from equihgnn.data.pcqm4 import PCQM4Mv2Base, PCQM4Mv2Graph, PCQM4Mv2HGraph
@@ -21,4 +22,7 @@ __all__ = [
     "PCQM4Mv2Base",
     "PCQM4Mv2Graph",
     "PCQM4Mv2HGraph",
+    "MD17Base",
+    "MD17Graph",
+    "MD17HGraph",
 ]

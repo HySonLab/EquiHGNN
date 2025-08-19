@@ -5,6 +5,7 @@ import pandas as pd
 import torch
 import torch.hub
 from ogb.utils import smiles2graph
+from ogb.utils.features import atom_to_feature_vector, bond_to_feature_vector
 from rdkit import Chem
 from torch_geometric.data import Data, InMemoryDataset, extract_gz  # download_url,
 from tqdm import tqdm
@@ -279,13 +280,44 @@ class OPVGraph3D(OPVBase):
 
         data_list = []
         for i, mol in enumerate(tqdm(suppl)):
+            if mol is None:
+                continue
+
             conf = mol.GetConformer()
             pos = conf.GetPositions()
             pos = torch.tensor(pos, dtype=torch.float)
             atomic_number = [atom.GetAtomicNum() for atom in mol.GetAtoms()]
             z = torch.tensor(atomic_number, dtype=torch.long)
+
+            try:
+                atom_fvs = [atom_to_feature_vector(atom) for atom in mol.GetAtoms()]
+                x = torch.tensor(atom_fvs, dtype=torch.long)
+
+                rows, cols, bond_fvs = [], [], []
+                for bond in mol.GetBonds():
+                    start, end = bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()
+                    rows += [start, end]
+                    cols += [end, start]
+                    bond_type = bond_to_feature_vector(bond)[0]
+                    bond_fvs.append([bond_type])
+                    bond_fvs.append([bond_type])
+            except Exception as e:
+                print(e)
+                continue
+
+            edge_index = torch.tensor([rows, cols], dtype=torch.long)
+            edge_attr = torch.tensor(bond_fvs, dtype=torch.long)
+
             y = torch.tensor([target[i]], dtype=torch.float)
-            data = Data(z=z, pos=pos, y=y, idx=i)
+            data = Data(
+                x=x,
+                pos=pos,
+                y=y,
+                z=z,
+                edge_index=edge_index,
+                edge_attr=edge_attr,
+                idx=i,
+            )
 
             if self.pre_filter is not None and not self.pre_filter(data):
                 continue

@@ -42,9 +42,6 @@ def create_train_val_test_set_and_normalize(target: int, data_name: str, data_di
         # Normalize targets to mean = 0 and std = 1.
         mean = train_dataset._data.y.mean(dim=0, keepdim=True)
         std = train_dataset._data.y.std(dim=0, keepdim=True)
-        train_dataset._data.y = (train_dataset._data.y - mean) / std
-        valid_dataset._data.y = (valid_dataset._data.y - mean) / std
-        test_dataset._data.y = (test_dataset._data.y - mean) / std
 
     else:
         if issubclass(data_cls, PCQM4Mv2Base):
@@ -71,13 +68,10 @@ def create_train_val_test_set_and_normalize(target: int, data_name: str, data_di
         # Normalize targets to mean = 0 and std = 1.
         mean = train_dataset.dataset.y.mean(dim=0, keepdim=True)
         std = train_dataset.dataset.y.std(dim=0, keepdim=True)
-        train_dataset.dataset.y = (train_dataset.dataset.y - mean) / std
-        valid_dataset.dataset.y = (valid_dataset.dataset.y - mean) / std
-        test_dataset.dataset.y = (test_dataset.dataset.y - mean) / std
 
     if mean.dim() != 1:
         mean, std = mean[:, target].item(), std[:, target].item()
     else:
         mean, std = mean.item(), std.item()
 
-    return train_dataset, valid_dataset, test_dataset, std
+    return train_dataset, valid_dataset, test_dataset, mean, std

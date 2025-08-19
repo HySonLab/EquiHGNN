@@ -19,9 +19,10 @@ torch.set_float32_matmul_precision("medium")
 
 
 class LitModel(pl.LightningModule):
-    def __init__(self, hparams, std=None):
+    def __init__(self, hparams, mean=None, std=None):
         super(LitModel, self).__init__()
         self.save_hyperparameters(hparams)
+        self.mean = mean
         self.std = std
 
         # Initialize the model based on the method
@@ -56,7 +57,7 @@ class LitModel(pl.LightningModule):
 
     def training_step(self, data, batch_idx):
         out = self(data)
-        mse_loss = self.mse_loss_fn(out, data.y)
+        mse_loss = self.mse_loss_fn(out, (data.y - self.mean) / self.std)
 
         self.log(
             "train_loss",
@@ -73,7 +74,7 @@ class LitModel(pl.LightningModule):
     def validation_step(self, data, batch_idx):
         out = self(data)
         if self.std:
-            self.eval_metrics.update(out * self.std, data.y * self.std)
+            self.eval_metrics.update(out * self.std + self.mean, data.y)
         else:
             self.eval_metrics.update(out, data.y)
 
@@ -107,7 +108,7 @@ class LitModel(pl.LightningModule):
         self.test_outputs.append((preds, targets))
 
         if self.std:
-            self.eval_metrics.update(out * self.std, data.y * self.std)
+            self.eval_metrics.update(out * self.std + self.mean, data.y)
         else:
             self.eval_metrics.update(out, data.y)
 
@@ -222,6 +223,7 @@ if __name__ == "__main__":
         train_dataset,
         valid_dataset,
         test_dataset,
+        mean,
         std,
     ) = create_train_val_test_set_and_normalize(
         target=args.target,
@@ -265,7 +267,7 @@ if __name__ == "__main__":
         loggers = [commet_logger, csv_logger]
 
         # Initialize Lightning model
-        model = LitModel(args, std=std)
+        model = LitModel(args, mean=mean, std=std)
 
         checkpoint_callback = pl.callbacks.ModelCheckpoint(
             dirpath=experiment_save_dir,

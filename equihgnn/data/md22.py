@@ -22,7 +22,7 @@ class MD22Base(InMemoryDataset):
         "AT_AT": "md22_AT-AT.npz",
         "AT_AT_CG_CG": "md22_AT-AT-CG-CG.npz",
         "Buckyball_catcher": "md22_buckyball-catcher.npz",
-        "Double_walled_nanotube": "md22_double-walled_nanotube.npz",
+        "Double_walled_nanotube": "md22_dw_nanotube.npz",
     }
 
     task_id = {

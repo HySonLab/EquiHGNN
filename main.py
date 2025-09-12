@@ -74,7 +74,7 @@ class LitModel(pl.LightningModule):
     def validation_step(self, data, batch_idx):
         out = self(data)
         if self.std:
-            self.eval_metrics.update(out * self.std + self.mean, data.y)
+            self.eval_metrics.update(out, (data.y - self.mean) / self.std)
         else:
             self.eval_metrics.update(out, data.y)
 
@@ -108,7 +108,7 @@ class LitModel(pl.LightningModule):
         self.test_outputs.append((preds, targets))
 
         if self.std:
-            self.eval_metrics.update(out * self.std + self.mean, data.y)
+            self.eval_metrics.update(out, (data.y - self.mean) / self.std)
         else:
             self.eval_metrics.update(out, data.y)
 

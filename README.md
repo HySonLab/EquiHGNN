@@ -2,6 +2,11 @@
 
 Published at Journal of Chemical Physics: https://pubs.aip.org/aip/jcp/article/164/14/144101/3386416/EquiHGNN-Scalable-rotationally-equivariant
 
+Presented at workshops of NeurIPS 2025:
+* New Perspectives in Advancing Graph Machine Learning Workshop: https://openreview.net/pdf?id=2YIhVthm0F
+* AI for Science: https://openreview.net/pdf?id=McZIwV1dva
+* Machine Learning and the Physical Sciences: https://ml4physicalsciences.github.io/2025/files/NeurIPS_ML4PS_2025_118.pdf
+
 Preprint: https://arxiv.org/pdf/2505.05650.pdf
 
 ## Abstract

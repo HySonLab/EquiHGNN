@@ -1,6 +1,8 @@
 # EquiHGNN: Scalable Rotationally Equivariant Hypergraph Neural Networks
 
-Paper: https://arxiv.org/pdf/2505.05650.pdf
+Published at Journal of Chemical Physics: https://pubs.aip.org/aip/jcp/article/164/14/144101/3386416/EquiHGNN-Scalable-rotationally-equivariant
+
+Preprint: https://arxiv.org/pdf/2505.05650.pdf
 
 ## Abstract
 
@@ -124,6 +126,24 @@ This project utilizes code and inspiration from the following open-source reposi
 - **VisNet:** [pyg-team/pytorch_geometric](https://github.com/pyg-team/pytorch_geometric/blob/2f1e4f2e666db65056d001650488be9b31f8dd0f/torch_geometric/nn/models/visnet.py)
 
 ## Please cite our work!
+
+```bibtex
+@article{10.1063/5.0317966,
+    author = {Dang, Tien and Hy, Truong-Son},
+    title = {EquiHGNN: Scalable rotationally equivariant hypergraph neural networks},
+    journal = {The Journal of Chemical Physics},
+    volume = {164},
+    number = {14},
+    pages = {144101},
+    year = {2026},
+    month = {04},
+    abstract = {Molecular interactions often involve higher-order relationships that cannot be fully captured by traditional graph-based models limited to pairwise connections. Hypergraphs naturally extend graphs by enabling multi-way interactions, making them well-suited for modeling complex molecular systems. In this work, we introduce EquiHGNN, an equivariant hypergraph neural network framework that integrates symmetry-aware representations to improve molecular modeling. By enforcing the equivariance under relevant transformation groups, our approach preserves geometric and topological properties, leading to more robust and physically meaningful representations. We examine a range of equivariant architectures and demonstrate that integrating symmetry constraints leads to notable performance gains on large-scale molecular datasets. Experiments across small and large molecules indicate that while higher-order interactions provide marginal gains for small systems, they surpass 2D graphs on larger ones. Incorporating geometric features into these higher-order structures further enhances performance, underscoring the critical role of spatial information in molecular representation learning. Our source code is available at https://github.com/HySonLab/EquiHGNN/.},
+    issn = {0021-9606},
+    doi = {10.1063/5.0317966},
+    url = {https://doi.org/10.1063/5.0317966},
+    eprint = {https://pubs.aip.org/aip/jcp/article-pdf/doi/10.1063/5.0317966/20968155/144101_1_5.0317966.pdf},
+}
+```
 
 ```bibtex
 @misc{dang2025equihgnnscalablerotationallyequivariant,
